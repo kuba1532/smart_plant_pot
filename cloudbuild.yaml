@@ -103,7 +103,7 @@ steps:
           echo "Skipping .NET app push"
         fi
 
-  # Deploy to Compute Engine with self-signed HTTPS
+  # Deploy to Compute Engine with auto-restart
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     id: deploy-dotnet-gce
     waitFor: ['push-dotnet-image']
@@ -115,15 +115,26 @@ steps:
           # Create a persistent volume for certificates if it doesn't exist
           gcloud compute ssh dotnet-vm2 --zone us-central1-c --command="
             mkdir -p ~/device-server-certs
+            
+            # Generate certificate if it doesn't exist
+            if [ ! -f ~/device-server-certs/certificate.pfx ]; then
+              cd ~/device-server-certs
+              openssl req -x509 -newkey rsa:4096 -keyout key.pem -out cert.pem -days 365 -nodes -subj \"/CN=device-server\" -batch
+              openssl pkcs12 -export -out certificate.pfx -inkey key.pem -in cert.pem -passout pass:
+              echo 'Certificate generated'
+            else
+              echo 'Certificate already exists'
+            fi
           "
           
-          # Deploy with HTTPS enabled
+          # Deploy with auto-restart enabled
           gcloud compute ssh dotnet-vm2 --zone us-central1-c --command="
             gcloud auth configure-docker -q &&
             docker pull gcr.io/$PROJECT_ID/device-server:$BUILD_ID &&
             docker stop device-server || true &&
             docker rm device-server || true &&
             docker run -d --name device-server \
+              --restart always \
               -p 80:8080 \
               -p 443:8443 \
               -v ~/device-server-certs:/app/certs \

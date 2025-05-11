@@ -15,7 +15,7 @@ namespace DeviceServer.Services.Implementations.TopicHandlers
         public DeviceReadingsHandler(IDbContextFactory<ApplicationDbContext> dbContextFactory)
         {
             _dbContextFactory = dbContextFactory;
-            Console.WriteLine("bruhhhhhhhhhhhhhh");
+            Console.WriteLine("I was autodeployed!!!!!!!!!!!!S");
         }
 
         public async Task HandleAsync(string payload)
