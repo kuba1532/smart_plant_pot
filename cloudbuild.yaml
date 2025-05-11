@@ -103,7 +103,7 @@ steps:
           echo "Skipping .NET app push"
         fi
 
-  # Deploy to Compute Engine
+  # Deploy to Compute Engine with self-signed HTTPS
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     id: deploy-dotnet-gce
     waitFor: ['push-dotnet-image']
@@ -112,15 +112,53 @@ steps:
       - '-c'
       - |
         if [ "$(cat /workspace/deploy_dotnet.txt)" = "true" ]; then
+          # Create a persistent volume for certificates if it doesn't exist
+          gcloud compute ssh dotnet-vm2 --zone us-central1-c --command="
+            mkdir -p ~/device-server-certs
+          "
+          
+          # Deploy with HTTPS enabled
           gcloud compute ssh dotnet-vm2 --zone us-central1-c --command="
             gcloud auth configure-docker -q &&
             docker pull gcr.io/$PROJECT_ID/device-server:$BUILD_ID &&
             docker stop device-server || true &&
             docker rm device-server || true &&
-            docker run -d --name device-server -p 80:80 gcr.io/$PROJECT_ID/device-server:$BUILD_ID
+            docker run -d --name device-server \
+              -p 80:8080 \
+              -p 443:8443 \
+              -v ~/device-server-certs:/app/certs \
+              gcr.io/$PROJECT_ID/device-server:$BUILD_ID
+          "
+          
+          # Verify the deployment
+          gcloud compute ssh dotnet-vm2 --zone us-central1-c --command="
+            docker ps | grep device-server
           "
         else
           echo "Skipping .NET app deployment to GCE"
+        fi
+
+  # Add a step to ensure firewall rules are set up correctly
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: setup-firewall
+    waitFor: ['deploy-dotnet-gce']
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        if [ "$(cat /workspace/deploy_dotnet.txt)" = "true" ]; then
+          # Check if HTTPS firewall rule exists, create if not
+          if ! gcloud compute firewall-rules describe allow-https --quiet 2>/dev/null; then
+            gcloud compute firewall-rules create allow-https \
+              --allow tcp:443 \
+              --description "Allow HTTPS traffic" \
+              --direction INGRESS
+            echo "Created HTTPS firewall rule"
+          else
+            echo "HTTPS firewall rule already exists"
+          fi
+        else
+          echo "Skipping firewall rule setup"
         fi
 
 # Images to be built
