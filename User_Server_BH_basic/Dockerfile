@@ -21,4 +21,4 @@ COPY . .
 EXPOSE ${PORT}
 
 # Run the application with exec form and healthcheck timeout increase
-CMD exec uvicorn main:app --host 0.0.0.0 --port ${PORT} --timeout-keep-alive 75
+CMD exec uvicorn main:app --host 0.0.0.0 --port ${PORT} --timeout-keep-alive 300
