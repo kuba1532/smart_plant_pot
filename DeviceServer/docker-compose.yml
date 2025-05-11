@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  device-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+    # If you need to override any settings from appsettings.json, add them here
+    # Example: 
+    # - ConnectionStrings__DefaultConnection=Host=your-db-host;Database=deviceserver;Username=postgres;Password=yourpassword
+    # - MqttSettings__BrokerAddress=your-mqtt-broker
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge

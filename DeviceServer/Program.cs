@@ -60,6 +60,12 @@ app.UseHttpsRedirection();
 //app.UseAuthorization();
 
 app.MapControllers();                            // Maps [ApiController] classes
+app.Lifetime.ApplicationStarted.Register(() => 
+{
+    Console.WriteLine("Application fully started and listening for requests");
+    Console.WriteLine($"ASPNETCORE_URLS: {Environment.GetEnvironmentVariable("ASPNETCORE_URLS")}");
+    // Log other important configuration values
+});
 
 //mqtt
 var mqttService = app.Services.GetRequiredService<IDeviceCommunicationService>();

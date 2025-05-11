@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Dev\\DeviceServer\\DeviceServer.csproj": {}
+    "C:\\Dev\\iotProject\\DeviceServer\\DeviceServer.csproj": {}
   },
   "projects": {
-    "C:\\Dev\\DeviceServer\\DeviceServer.csproj": {
+    "C:\\Dev\\iotProject\\DeviceServer\\DeviceServer.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Dev\\DeviceServer\\DeviceServer.csproj",
+        "projectUniqueName": "C:\\Dev\\iotProject\\DeviceServer\\DeviceServer.csproj",
         "projectName": "DeviceServer",
-        "projectPath": "C:\\Dev\\DeviceServer\\DeviceServer.csproj",
+        "projectPath": "C:\\Dev\\iotProject\\DeviceServer\\DeviceServer.csproj",
         "packagesPath": "C:\\Users\\Admin\\.nuget\\packages\\",
-        "outputPath": "C:\\Dev\\DeviceServer\\obj\\",
+        "outputPath": "C:\\Dev\\iotProject\\DeviceServer\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\Admin\\AppData\\Roaming\\NuGet\\NuGet.Config",

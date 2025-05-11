@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "bPFjWNnZGZRwWE6BzbhjQvLAYEVM0LVWr/qEilR1ckbYOLP3XfjEkTg6GIV7S3l0Ko4sn0VgY15sNqgtnsj70A==",
+  "dgSpecHash": "q1Z3QTrKX50DCDs3jVEHdbZT83OOy3ckZjoV83aZWl65T956WH2Fo6qtq5QPpXU5E2wmki0p0OBKqy4vZEBdJw==",
   "success": true,
-  "projectFilePath": "C:\\Dev\\DeviceServer\\DeviceServer.csproj",
+  "projectFilePath": "C:\\Dev\\iotProject\\DeviceServer\\DeviceServer.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\Admin\\.nuget\\packages\\humanizer.core\\2.14.1\\humanizer.core.2.14.1.nupkg.sha512",
     "C:\\Users\\Admin\\.nuget\\packages\\microsoft.aspnetcore.openapi\\8.0.6\\microsoft.aspnetcore.openapi.8.0.6.nupkg.sha512",
