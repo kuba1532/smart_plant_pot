@@ -1,0 +1,128 @@
+# Cloud Build configuration file for dual application deployment
+# Place this file in the root of your repository
+
+steps:
+  # Determine which services to deploy
+  - name: 'gcr.io/cloud-builders/git'
+    id: check-changes
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        if [ "$_TRIGGER_TYPE" = "manual" ]; then
+          echo "Manual trigger, deploying both services"
+          echo "true" > /workspace/deploy_python.txt
+          echo "true" > /workspace/deploy_dotnet.txt
+        else
+          # Check for changes in Python app
+          git diff --name-only $COMMIT_SHA^..$COMMIT_SHA | grep -q "^User_Server_BH_basic/" && echo "true" > /workspace/deploy_python.txt || echo "false" > /workspace/deploy_python.txt
+          
+          # Check for changes in .NET app
+          git diff --name-only $COMMIT_SHA^..$COMMIT_SHA | grep -q "^DeviceServer/" && echo "true" > /workspace/deploy_dotnet.txt || echo "false" > /workspace/deploy_dotnet.txt
+        fi
+
+  # Python FastAPI Application Build & Deploy
+  - name: 'gcr.io/cloud-builders/docker'
+    id: build-python-image
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        if [ "$(cat /workspace/deploy_python.txt)" = "true" ]; then
+          cd User_Server_BH_basic
+          # Generate requirements.txt if missing
+          if [ ! -f requirements.txt ]; then
+            echo "requirements.txt not found, creating a placeholder"
+            echo "fastapi>=0.95.0\nuvicorn>=0.21.0\npydantic>=1.10.7" > requirements.txt
+          fi
+          docker build -t gcr.io/$PROJECT_ID/user-server-bh:$COMMIT_SHA .
+        else
+          echo "No changes in Python app, skipping"
+        fi
+
+  - name: 'gcr.io/cloud-builders/docker'
+    id: push-python-image
+    waitFor: ['build-python-image']
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        if [ "$(cat /workspace/deploy_python.txt)" = "true" ]; then
+          docker push gcr.io/$PROJECT_ID/user-server-bh:$COMMIT_SHA
+        else
+          echo "No changes in Python app, skipping"
+        fi
+
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: deploy-python-app
+    waitFor: ['push-python-image']
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        if [ "$(cat /workspace/deploy_python.txt)" = "true" ]; then
+          gcloud run deploy user-server-bh \
+            --image gcr.io/$PROJECT_ID/user-server-bh:$COMMIT_SHA \
+            --region $_REGION \
+            --platform managed \
+            --allow-unauthenticated
+        else
+          echo "No changes in Python app, skipping"
+        fi
+
+  # .NET ASP.NET Application Build & Deploy
+  - name: 'gcr.io/cloud-builders/docker'
+    id: build-dotnet-image
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        if [ "$(cat /workspace/deploy_dotnet.txt)" = "true" ]; then
+          cd DeviceServer
+          docker build -t gcr.io/$PROJECT_ID/device-server:$COMMIT_SHA .
+        else
+          echo "No changes in .NET app, skipping"
+        fi
+
+  - name: 'gcr.io/cloud-builders/docker'
+    id: push-dotnet-image
+    waitFor: ['build-dotnet-image']
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        if [ "$(cat /workspace/deploy_dotnet.txt)" = "true" ]; then
+          docker push gcr.io/$PROJECT_ID/device-server:$COMMIT_SHA
+        else
+          echo "No changes in .NET app, skipping"
+        fi
+
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: deploy-dotnet-app
+    waitFor: ['push-dotnet-image']
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        if [ "$(cat /workspace/deploy_dotnet.txt)" = "true" ]; then
+          gcloud run deploy device-server \
+            --image gcr.io/$PROJECT_ID/device-server:$COMMIT_SHA \
+            --region $_REGION \
+            --platform managed \
+            --allow-unauthenticated
+        else
+          echo "No changes in .NET app, skipping"
+        fi
+
+# Substitution variables with default values
+substitutions:
+  _REGION: 'us-central1'  # Default region
+  _TRIGGER_TYPE: 'auto'   # Can be overridden in manual triggers
+
+# Store images in Google Container Registry
+images:
+  - 'gcr.io/$PROJECT_ID/user-server-bh:$COMMIT_SHA'
+  - 'gcr.io/$PROJECT_ID/device-server:$COMMIT_SHA'
+
+# Timeout setting
+timeout: '1800s'
