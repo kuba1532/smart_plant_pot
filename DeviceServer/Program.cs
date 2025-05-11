@@ -70,6 +70,6 @@ app.Lifetime.ApplicationStarted.Register(() =>
 //mqtt
 var mqttService = app.Services.GetRequiredService<IDeviceCommunicationService>();
 await mqttService.StartAsync(); // 🟢 Start it here
-await mqttService.SendMessageToCommonDebug("hi motherduckers");
+await mqttService.SendMessageToCommonDebug("hi");
 
 app.Run();
