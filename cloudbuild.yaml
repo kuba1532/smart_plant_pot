@@ -1,5 +1,17 @@
-# Cloud Build configuration file for dual application deployment
 steps:
+  # Install Docker on the VM if not already installed
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: install-docker
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        # Install Docker
+        sudo apt-get update
+        sudo apt-get install -y docker.io
+        # Verify Docker installation
+        docker --version
+
   # Determine which services to deploy
   - name: 'gcr.io/cloud-builders/git'
     id: check-changes
@@ -76,7 +88,7 @@ steps:
           echo "Skipping Python app deployment"
         fi
 
-  # .NET ASP.NET Application Build & Push Only
+  # .NET ASP.NET Application Build & Deploy
   - name: 'gcr.io/cloud-builders/docker'
     id: build-dotnet-image
     entrypoint: 'bash'
@@ -103,9 +115,8 @@ steps:
           echo "Skipping .NET app push"
         fi
 
-  # Deploy to Compute Engine
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-    id: deploy-dotnet-gce
+    id: deploy-dotnet-app
     waitFor: ['push-dotnet-image']
     entrypoint: 'bash'
     args:
@@ -119,7 +130,7 @@ steps:
             docker run -d --name device-server -p 80:80 gcr.io/$PROJECT_ID/device-server:$BUILD_ID
           "
         else
-          echo "Skipping .NET app deployment to GCE"
+          echo "Skipping .NET app deployment"
         fi
 
 # Images to be built
