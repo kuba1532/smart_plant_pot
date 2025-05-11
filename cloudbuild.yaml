@@ -126,3 +126,10 @@ images:
 
 # Timeout setting
 timeout: '1800s'
+
+# Specify logs bucket and logging options
+options:
+  logging: CLOUD_LOGGING_ONLY
+  
+# Alternative option if you want to use a storage bucket for logs
+# logsBucket: 'gs://[YOUR_PROJECT_LOGS_BUCKET]/logs'
