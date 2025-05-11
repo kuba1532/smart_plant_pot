@@ -1,8 +1,12 @@
 from fastapi import FastAPI
-from app.api.endpoints import example, change_settings, send_command  # ✅ import change_settings
+
+# Create a simplified app for initial testing
 app = FastAPI()
 
-# Include routers
-app.include_router(example.router, tags=["Example"])
-app.include_router(change_settings.router, tags=["Settings"])  # ✅ add this line
-app.include_router(send_command.router, tags=["Command"])
+@app.get("/")
+def read_root():
+    return {"status": "healthy", "message": "Hello from User Server BH"}
+
+@app.get("/health")
+def health_check():
+    return {"status": "ok"}
