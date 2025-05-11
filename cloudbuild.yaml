@@ -76,7 +76,7 @@ steps:
           echo "Skipping Python app deployment"
         fi
 
-  # .NET ASP.NET Application Build & Deploy
+  # .NET ASP.NET Application Build & Push Only
   - name: 'gcr.io/cloud-builders/docker'
     id: build-dotnet-image
     entrypoint: 'bash'
@@ -103,21 +103,23 @@ steps:
           echo "Skipping .NET app push"
         fi
 
+  # Deploy to Compute Engine
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-    id: deploy-dotnet-app
+    id: deploy-dotnet-gce
     waitFor: ['push-dotnet-image']
     entrypoint: 'bash'
     args:
       - '-c'
       - |
         if [ "$(cat /workspace/deploy_dotnet.txt)" = "true" ]; then
-          gcloud run deploy device-server \
-            --image gcr.io/$PROJECT_ID/device-server:$BUILD_ID \
-            --region us-central1 \
-            --platform managed \
-            --allow-unauthenticated
+          gcloud compute ssh dotnet-vm2 --zone us-central1-c --command="
+            docker pull gcr.io/$PROJECT_ID/device-server:$BUILD_ID &&
+            docker stop device-server || true &&
+            docker rm device-server || true &&
+            docker run -d --name device-server -p 80:80 gcr.io/$PROJECT_ID/device-server:$BUILD_ID
+          "
         else
-          echo "Skipping .NET app deployment"
+          echo "Skipping .NET app deployment to GCE"
         fi
 
 # Images to be built
