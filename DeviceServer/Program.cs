@@ -15,7 +15,7 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 builder.Services.AddDbContextFactory<ApplicationDbContext>(options =>
     options.UseNpgsql(connectionString, npgsqlOptions =>
     {
-        npgsqlOptions.CommandTimeout(180); // Timeout in seconds
+        npgsqlOptions.CommandTimeout(190); // Timeout in seconds
     }));
 
 // Add services to the container.
