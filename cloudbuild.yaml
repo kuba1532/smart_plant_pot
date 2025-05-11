@@ -113,6 +113,7 @@ steps:
       - |
         if [ "$(cat /workspace/deploy_dotnet.txt)" = "true" ]; then
           gcloud compute ssh dotnet-vm2 --zone us-central1-c --command="
+            gcloud auth configure-docker -q &&
             docker pull gcr.io/$PROJECT_ID/device-server:$BUILD_ID &&
             docker stop device-server || true &&
             docker rm device-server || true &&
