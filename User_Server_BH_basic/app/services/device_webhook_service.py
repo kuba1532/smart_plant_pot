@@ -4,7 +4,7 @@ from app.models.change_settings import ChangeSettingsInput
 from app.models.send_command import SendCommandInput
 
 # Replace with actual device server endpoint
-DEVICE_SERVER_BASE_URL = "https://device-server-168223699989.us-central1.run.app/"
+DEVICE_SERVER_BASE_URL = "https://device-server-168223699989.us-central1.run.app/api/"
 DEVICE_SERVER_UPDATE_SETTINGS_URL = "Settings/update-settings"
 DEVICE_SERVER_COMMAND_URL = "Command/send-command"
 
