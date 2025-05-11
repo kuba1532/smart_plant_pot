@@ -58,7 +58,9 @@ steps:
             # Generate requirements.txt if missing
             if [ ! -f requirements.txt ]; then
               echo "requirements.txt not found, creating a placeholder"
-              echo "fastapi>=0.95.0\nuvicorn>=0.21.0\npydantic>=1.10.7" > requirements.txt
+              echo "fastapi>=0.95.0
+uvicorn>=0.21.0
+pydantic>=1.10.7" > requirements.txt
             fi
             
             # Check if Dockerfile exists, if not create a basic one
@@ -92,9 +94,16 @@ EOF
             echo "Directory User_Server_BH_basic not found, skipping build"
             mkdir -p User_Server_BH_basic
             cd User_Server_BH_basic
-            echo "fastapi>=0.95.0\nuvicorn>=0.21.0\npydantic>=1.10.7" > requirements.txt
+            echo "fastapi>=0.95.0
+uvicorn>=0.21.0
+pydantic>=1.10.7" > requirements.txt
             # Create a placeholder app
-            echo 'from fastapi import FastAPI\napp = FastAPI()\n\n@app.get("/")\ndef read_root():\n    return {"message": "Hello World"}' > main.py
+            echo 'from fastapi import FastAPI
+app = FastAPI()
+
+@app.get("/")
+def read_root():
+    return {"message": "Hello World"}' > main.py
             # Create a basic Dockerfile
             cat > Dockerfile << 'EOF'
 FROM python:3.11-slim
