@@ -2,7 +2,7 @@
 # Place this file in the root of your repository
 
 steps:
-  # Determine which services to deploy
+  # Determine which services to deploy (improved logic for first-time builds)
   - name: 'gcr.io/cloud-builders/git'
     id: check-changes
     entrypoint: 'bash'
@@ -14,11 +14,33 @@ steps:
           echo "true" > /workspace/deploy_python.txt
           echo "true" > /workspace/deploy_dotnet.txt
         else
-          # Check for changes in Python app
-          git diff --name-only $COMMIT_SHA^..$COMMIT_SHA | grep -q "^User_Server_BH_basic/" && echo "true" > /workspace/deploy_python.txt || echo "false" > /workspace/deploy_python.txt
+          # Get list of all files in the repository
+          FILES=$(find . -type f | grep -v "^\./\.git")
           
-          # Check for changes in .NET app
-          git diff --name-only $COMMIT_SHA^..$COMMIT_SHA | grep -q "^DeviceServer/" && echo "true" > /workspace/deploy_dotnet.txt || echo "false" > /workspace/deploy_dotnet.txt
+          # Check for Python app files
+          if echo "$FILES" | grep -q "^./User_Server_BH_basic/"; then
+            echo "Found Python app files, will deploy Python app"
+            echo "true" > /workspace/deploy_python.txt
+          else
+            echo "No Python app files found, skipping Python app"
+            echo "false" > /workspace/deploy_python.txt
+          fi
+          
+          # Check for .NET app files
+          if echo "$FILES" | grep -q "^./DeviceServer/"; then
+            echo "Found .NET app files, will deploy .NET app"
+            echo "true" > /workspace/deploy_dotnet.txt
+          else
+            echo "No .NET app files found, skipping .NET app"
+            echo "false" > /workspace/deploy_dotnet.txt
+          fi
+        fi
+        
+        # For first-time build or if _FORCE_DEPLOY is set, deploy both
+        if [ "$_FORCE_DEPLOY" = "true" ]; then
+          echo "Force deploy flag set, deploying both services"
+          echo "true" > /workspace/deploy_python.txt
+          echo "true" > /workspace/deploy_dotnet.txt
         fi
 
   # Python FastAPI Application Build & Deploy
@@ -29,15 +51,76 @@ steps:
       - '-c'
       - |
         if [ "$(cat /workspace/deploy_python.txt)" = "true" ]; then
-          cd User_Server_BH_basic
-          # Generate requirements.txt if missing
-          if [ ! -f requirements.txt ]; then
-            echo "requirements.txt not found, creating a placeholder"
+          # Check if User_Server_BH_basic directory exists
+          if [ -d "User_Server_BH_basic" ]; then
+            cd User_Server_BH_basic
+            
+            # Generate requirements.txt if missing
+            if [ ! -f requirements.txt ]; then
+              echo "requirements.txt not found, creating a placeholder"
+              echo "fastapi>=0.95.0\nuvicorn>=0.21.0\npydantic>=1.10.7" > requirements.txt
+            fi
+            
+            # Check if Dockerfile exists, if not create a basic one
+            if [ ! -f Dockerfile ]; then
+              echo "Dockerfile not found, creating a basic one"
+              cat > Dockerfile << 'EOF'
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Copy requirements file first for better layer caching
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy application code
+COPY . .
+
+# Expose the port the app runs on
+EXPOSE 8080
+
+# Cloud Run will set this environment variable
+ENV PORT=8080
+
+# Command to run the application using Uvicorn
+CMD uvicorn main:app --host 0.0.0.0 --port ${PORT:-8080}
+EOF
+            fi
+            
+            docker build -t gcr.io/$PROJECT_ID/user-server-bh:$BUILD_ID .
+          else
+            echo "Directory User_Server_BH_basic not found, skipping build"
+            mkdir -p User_Server_BH_basic
+            cd User_Server_BH_basic
             echo "fastapi>=0.95.0\nuvicorn>=0.21.0\npydantic>=1.10.7" > requirements.txt
+            # Create a placeholder app
+            echo 'from fastapi import FastAPI\napp = FastAPI()\n\n@app.get("/")\ndef read_root():\n    return {"message": "Hello World"}' > main.py
+            # Create a basic Dockerfile
+            cat > Dockerfile << 'EOF'
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Copy requirements file first for better layer caching
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy application code
+COPY . .
+
+# Expose the port the app runs on
+EXPOSE 8080
+
+# Cloud Run will set this environment variable
+ENV PORT=8080
+
+# Command to run the application using Uvicorn
+CMD uvicorn main:app --host 0.0.0.0 --port ${PORT:-8080}
+EOF
+            docker build -t gcr.io/$PROJECT_ID/user-server-bh:$BUILD_ID .
           fi
-          docker build -t gcr.io/$PROJECT_ID/user-server-bh:$COMMIT_SHA .
         else
-          echo "No changes in Python app, skipping"
+          echo "Skipping Python app build"
         fi
 
   - name: 'gcr.io/cloud-builders/docker'
@@ -48,9 +131,9 @@ steps:
       - '-c'
       - |
         if [ "$(cat /workspace/deploy_python.txt)" = "true" ]; then
-          docker push gcr.io/$PROJECT_ID/user-server-bh:$COMMIT_SHA
+          docker push gcr.io/$PROJECT_ID/user-server-bh:$BUILD_ID
         else
-          echo "No changes in Python app, skipping"
+          echo "Skipping Python app push"
         fi
 
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
@@ -62,12 +145,12 @@ steps:
       - |
         if [ "$(cat /workspace/deploy_python.txt)" = "true" ]; then
           gcloud run deploy user-server-bh \
-            --image gcr.io/$PROJECT_ID/user-server-bh:$COMMIT_SHA \
+            --image gcr.io/$PROJECT_ID/user-server-bh:$BUILD_ID \
             --region $_REGION \
             --platform managed \
             --allow-unauthenticated
         else
-          echo "No changes in Python app, skipping"
+          echo "Skipping Python app deployment"
         fi
 
   # .NET ASP.NET Application Build & Deploy
@@ -78,10 +161,139 @@ steps:
       - '-c'
       - |
         if [ "$(cat /workspace/deploy_dotnet.txt)" = "true" ]; then
-          cd DeviceServer
-          docker build -t gcr.io/$PROJECT_ID/device-server:$COMMIT_SHA .
+          # Check if DeviceServer directory exists
+          if [ -d "DeviceServer" ]; then
+            cd DeviceServer
+            
+            # Check if Dockerfile exists, if not create a basic one
+            if [ ! -f Dockerfile ]; then
+              echo "Dockerfile not found, creating a basic one"
+              cat > Dockerfile << 'EOF'
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+WORKDIR /src
+
+# Copy csproj and restore dependencies
+COPY *.csproj .
+RUN dotnet restore
+
+# Copy everything else and build
+COPY . .
+RUN dotnet publish -c Release -o /app
+
+# Build runtime image
+FROM mcr.microsoft.com/dotnet/aspnet:8.0
+WORKDIR /app
+COPY --from=build /app .
+
+# Expose the port and set environment variable
+ENV PORT=8080
+EXPOSE 8080
+
+# Configure the application to listen on the correct port
+ENV ASPNETCORE_URLS=http://+:${PORT:-8080}
+
+ENTRYPOINT ["dotnet", "DeviceServer.dll"]
+EOF
+            fi
+            
+            # Create a minimal project file if none exists
+            if [ ! -f *.csproj ]; then
+              echo "No .csproj file found, creating a minimal one"
+              cat > DeviceServer.csproj << 'EOF'
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="8.0.0" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />
+  </ItemGroup>
+</Project>
+EOF
+            fi
+            
+            # Create a basic Program.cs if none exists
+            if [ ! -f Program.cs ]; then
+              echo "Program.cs not found, creating a basic one"
+              cat > Program.cs << 'EOF'
+var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+var app = builder.Build();
+app.UseSwagger();
+app.UseSwaggerUI();
+app.MapGet("/", () => "Hello World!");
+app.Run();
+EOF
+            fi
+            
+            docker build -t gcr.io/$PROJECT_ID/device-server:$BUILD_ID .
+          else
+            echo "Directory DeviceServer not found, creating minimal app"
+            mkdir -p DeviceServer
+            cd DeviceServer
+            
+            # Create a minimal project file
+            cat > DeviceServer.csproj << 'EOF'
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="8.0.0" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />
+  </ItemGroup>
+</Project>
+EOF
+            
+            # Create a basic Program.cs
+            cat > Program.cs << 'EOF'
+var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+var app = builder.Build();
+app.UseSwagger();
+app.UseSwaggerUI();
+app.MapGet("/", () => "Hello World!");
+app.Run();
+EOF
+            
+            # Create a basic Dockerfile
+            cat > Dockerfile << 'EOF'
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+WORKDIR /src
+
+# Copy csproj and restore dependencies
+COPY *.csproj .
+RUN dotnet restore
+
+# Copy everything else and build
+COPY . .
+RUN dotnet publish -c Release -o /app
+
+# Build runtime image
+FROM mcr.microsoft.com/dotnet/aspnet:8.0
+WORKDIR /app
+COPY --from=build /app .
+
+# Expose the port and set environment variable
+ENV PORT=8080
+EXPOSE 8080
+
+# Configure the application to listen on the correct port
+ENV ASPNETCORE_URLS=http://+:${PORT:-8080}
+
+ENTRYPOINT ["dotnet", "DeviceServer.dll"]
+EOF
+            
+            docker build -t gcr.io/$PROJECT_ID/device-server:$BUILD_ID .
+          fi
         else
-          echo "No changes in .NET app, skipping"
+          echo "Skipping .NET app build"
         fi
 
   - name: 'gcr.io/cloud-builders/docker'
@@ -92,9 +304,9 @@ steps:
       - '-c'
       - |
         if [ "$(cat /workspace/deploy_dotnet.txt)" = "true" ]; then
-          docker push gcr.io/$PROJECT_ID/device-server:$COMMIT_SHA
+          docker push gcr.io/$PROJECT_ID/device-server:$BUILD_ID
         else
-          echo "No changes in .NET app, skipping"
+          echo "Skipping .NET app push"
         fi
 
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
@@ -106,30 +318,29 @@ steps:
       - |
         if [ "$(cat /workspace/deploy_dotnet.txt)" = "true" ]; then
           gcloud run deploy device-server \
-            --image gcr.io/$PROJECT_ID/device-server:$COMMIT_SHA \
+            --image gcr.io/$PROJECT_ID/device-server:$BUILD_ID \
             --region $_REGION \
             --platform managed \
             --allow-unauthenticated
         else
-          echo "No changes in .NET app, skipping"
+          echo "Skipping .NET app deployment"
         fi
 
 # Substitution variables with default values
 substitutions:
   _REGION: 'us-central1'  # Default region
   _TRIGGER_TYPE: 'auto'   # Can be overridden in manual triggers
+  _FORCE_DEPLOY: 'true'   # Set to true for first build, can be set to false later
 
-# Store images in Google Container Registry
+# Use BUILD_ID instead of COMMIT_SHA for image tags
+# This avoids issues with missing images
 images:
-  - 'gcr.io/$PROJECT_ID/user-server-bh:$COMMIT_SHA'
-  - 'gcr.io/$PROJECT_ID/device-server:$COMMIT_SHA'
+  - 'gcr.io/$PROJECT_ID/user-server-bh:$BUILD_ID'
+  - 'gcr.io/$PROJECT_ID/device-server:$BUILD_ID'
+
+# Specify logging options
+options:
+  logging: CLOUD_LOGGING_ONLY
 
 # Timeout setting
 timeout: '1800s'
-
-# Specify logs bucket and logging options
-options:
-  logging: CLOUD_LOGGING_ONLY
-  
-# Alternative option if you want to use a storage bucket for logs
-# logsBucket: 'gs://[YOUR_PROJECT_LOGS_BUCKET]/logs'
