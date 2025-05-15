@@ -1,0 +1,513 @@
+# app/services/device_reading_service.py
+from fastapi import HTTPException
+from typing import Dict, Any, List, Optional
+from datetime import datetime
+import logging
+
+from app.db.crud.device_readings import (
+    create_device_reading,
+    update_device_reading,
+    delete_device_reading,
+    get_device_reading,
+    get_device_readings_by_device_id,
+    get_latest_device_readings,
+    get_reading_closest_to_timestamp,
+    get_readings_in_time_range,
+    DeviceReadingNotFoundError,
+    DeviceReadingAlreadyExistsError,
+    DeviceNotFoundError,
+    DatabaseError
+)
+
+# Configure logger
+logger = logging.getLogger(__name__)
+
+
+class DeviceReadingService:
+    """Service for managing device readings"""
+
+    def create_reading(self, device_id: int, time: datetime,
+                       humidity: Optional[float] = None,
+                       light_intensity: Optional[float] = None,
+                       temperature: Optional[float] = None) -> Dict[str, Any]:
+        """
+        Create a new device reading or update if it already exists
+
+        Args:
+            device_id: The ID of the device
+            time: Timestamp of the reading
+            humidity: Humidity reading (optional)
+            light_intensity: Light intensity reading (optional)
+            temperature: Temperature reading (optional)
+
+        Returns:
+            Response indicating the status of the operation
+        """
+        try:
+            reading = create_device_reading(
+                device_id=device_id,
+                time=time,
+                humidity=humidity,
+                light_intensity=light_intensity,
+                temperature=temperature
+            )
+
+            logger.info(f"Reading created: device_id={device_id}, time={time}")
+
+            return {
+                "status": "success",
+                "message": "Reading created successfully",
+                "device_id": device_id,
+                "time": time
+            }
+
+        except DeviceNotFoundError as e:
+            logger.error(f"Device not found: {str(e)}")
+            raise HTTPException(
+                status_code=404,
+                detail=f"Device with id {device_id} not found"
+            )
+
+        except DeviceReadingAlreadyExistsError:
+            logger.info(f"Reading updated instead of created: device_id={device_id}, time={time}")
+            return {
+                "status": "success",
+                "message": "Reading updated successfully",
+                "device_id": device_id,
+                "time": time
+            }
+
+        except DatabaseError as e:
+            logger.error(f"Database error processing reading creation: {str(e)}")
+            raise HTTPException(
+                status_code=500,
+                detail="Failed to process reading creation due to database error"
+            )
+
+    def update_reading(self, device_id: int, time: datetime,
+                       humidity: Optional[float] = None,
+                       light_intensity: Optional[float] = None,
+                       temperature: Optional[float] = None) -> Dict[str, Any]:
+        """
+        Update an existing device reading
+
+        Args:
+            device_id: The ID of the device
+            time: Timestamp of the reading
+            humidity: Humidity reading (optional)
+            light_intensity: Light intensity reading (optional)
+            temperature: Temperature reading (optional)
+
+        Returns:
+            Response indicating the status of the operation
+        """
+        try:
+            reading = update_device_reading(
+                device_id=device_id,
+                time=time,
+                humidity=humidity,
+                light_intensity=light_intensity,
+                temperature=temperature
+            )
+
+            logger.info(f"Reading updated: device_id={device_id}, time={time}")
+
+            return {
+                "status": "success",
+                "message": "Reading updated successfully",
+                "device_id": device_id,
+                "time": time
+            }
+
+        except DeviceReadingNotFoundError as e:
+            logger.warning(f"Reading not found for update: {str(e)}")
+            raise HTTPException(
+                status_code=404,
+                detail=f"Reading for device {device_id} at time {time} not found"
+            )
+
+        except DatabaseError as e:
+            logger.error(f"Database error processing reading update: {str(e)}")
+            raise HTTPException(
+                status_code=500,
+                detail="Failed to process reading update due to database error"
+            )
+
+    def delete_reading(self, device_id: int, time: datetime) -> Dict[str, Any]:
+        """
+        Delete a device reading
+
+        Args:
+            device_id: The ID of the device
+            time: Timestamp of the reading
+
+        Returns:
+            Response indicating the status of the operation
+        """
+        try:
+            result = delete_device_reading(device_id=device_id, time=time)
+
+            if result:
+                logger.info(f"Reading deleted: device_id={device_id}, time={time}")
+                return {
+                    "status": "success",
+                    "message": "Reading deleted successfully",
+                    "device_id": device_id,
+                    "time": time
+                }
+            else:
+                logger.warning(f"Reading not found for deletion: device_id={device_id}, time={time}")
+                return {
+                    "status": "warning",
+                    "message": "Reading not found for deletion",
+                    "device_id": device_id,
+                    "time": time
+                }
+
+        except DatabaseError as e:
+            logger.error(f"Database error processing reading deletion: {str(e)}")
+            raise HTTPException(
+                status_code=500,
+                detail="Failed to process reading deletion due to database error"
+            )
+
+    def get_reading(self, device_id: int, time: datetime) -> Dict[str, Any]:
+        """
+        Get a specific device reading
+
+        Args:
+            device_id: The ID of the device
+            time: Timestamp of the reading
+
+        Returns:
+            The reading data
+        """
+        try:
+            reading = get_device_reading(device_id=device_id, time=time)
+
+            if not reading:
+                logger.warning(f"Reading not found: device_id={device_id}, time={time}")
+                raise HTTPException(
+                    status_code=404,
+                    detail=f"Reading for device {device_id} at time {time} not found"
+                )
+
+            # Convert to dict for response
+            return {
+                "device_id": reading.device_id,
+                "time": reading.time,
+                "humidity": reading.humidity,
+                "light_intensity": reading.light_intensity,
+                "temperature": reading.temperature
+            }
+
+        except DatabaseError as e:
+            logger.error(f"Database error retrieving reading: {str(e)}")
+            raise HTTPException(
+                status_code=500,
+                detail="Failed to retrieve reading due to database error"
+            )
+
+    def get_readings_by_device(self, device_id: int) -> List[Dict[str, Any]]:
+        """
+        Get all readings for a device
+
+        Args:
+            device_id: The ID of the device
+
+        Returns:
+            List of reading data
+        """
+        try:
+            readings = get_device_readings_by_device_id(device_id=device_id)
+
+            # Convert to list of dicts for response
+            return [
+                {
+                    "device_id": r.device_id,
+                    "time": r.time,
+                    "humidity": r.humidity,
+                    "light_intensity": r.light_intensity,
+                    "temperature": r.temperature
+                }
+                for r in readings
+            ]
+
+        except DeviceNotFoundError as e:
+            logger.error(f"Device not found: {str(e)}")
+            raise HTTPException(
+                status_code=404,
+                detail=f"Device with id {device_id} not found"
+            )
+
+        except DatabaseError as e:
+            logger.error(f"Database error retrieving device readings: {str(e)}")
+            raise HTTPException(
+                status_code=500,
+                detail="Failed to retrieve device readings due to database error"
+            )
+
+    def get_latest_readings(self, device_id: int, limit: int = 10) -> List[Dict[str, Any]]:
+        """
+        Get the latest readings for a device
+
+        Args:
+            device_id: The ID of the device
+            limit: Number of readings to return (default 10)
+
+        Returns:
+            List of the latest reading data
+        """
+        try:
+            readings = get_latest_device_readings(device_id=device_id, limit=limit)
+
+            # Convert to list of dicts for response
+            return [
+                {
+                    "device_id": r.device_id,
+                    "time": r.time,
+                    "humidity": r.humidity,
+                    "light_intensity": r.light_intensity,
+                    "temperature": r.temperature
+                }
+                for r in readings
+            ]
+
+        except DeviceNotFoundError as e:
+            logger.error(f"Device not found: {str(e)}")
+            raise HTTPException(
+                status_code=404,
+                detail=f"Device with id {device_id} not found"
+            )
+
+        except DatabaseError as e:
+            logger.error(f"Database error retrieving latest readings: {str(e)}")
+            raise HTTPException(
+                status_code=500,
+                detail="Failed to retrieve latest readings due to database error"
+            )
+
+    def get_reading_near_timestamp(self, device_id: int, timestamp: datetime) -> Dict[str, Any]:
+        """
+        Get the reading closest to a specified timestamp
+
+        Args:
+            device_id: The ID of the device
+            timestamp: Target timestamp
+
+        Returns:
+            The closest reading data
+        """
+        try:
+            reading = get_reading_closest_to_timestamp(device_id=device_id, timestamp=timestamp)
+
+            if not reading:
+                logger.warning(f"No readings found for device: device_id={device_id}")
+                raise HTTPException(
+                    status_code=404,
+                    detail=f"No readings found for device {device_id}"
+                )
+
+            # Convert to dict for response
+            return {
+                "device_id": reading.device_id,
+                "time": reading.time,
+                "humidity": reading.humidity,
+                "light_intensity": reading.light_intensity,
+                "temperature": reading.temperature,
+                "time_difference_seconds": abs((timestamp - reading.time).total_seconds())
+            }
+
+        except DeviceNotFoundError as e:
+            logger.error(f"Device not found: {str(e)}")
+            raise HTTPException(
+                status_code=404,
+                detail=f"Device with id {device_id} not found"
+            )
+
+        except DatabaseError as e:
+            logger.error(f"Database error finding closest reading: {str(e)}")
+            raise HTTPException(
+                status_code=500,
+                detail="Failed to find closest reading due to database error"
+            )
+
+    def get_readings_in_time_range(self, device_id: int, start_time: datetime, end_time: datetime) -> List[
+        Dict[str, Any]]:
+        """
+        Get readings within a specified time range
+
+        Args:
+            device_id: The ID of the device
+            start_time: Start of the time range
+            end_time: End of the time range
+
+        Returns:
+            List of reading data within the time range
+        """
+        try:
+            readings = get_readings_in_time_range(
+                device_id=device_id,
+                start_time=start_time,
+                end_time=end_time
+            )
+
+            # Convert to list of dicts for response
+            return [
+                {
+                    "device_id": r.device_id,
+                    "time": r.time,
+                    "humidity": r.humidity,
+                    "light_intensity": r.light_intensity,
+                    "temperature": r.temperature
+                }
+                for r in readings
+            ]
+
+        except DeviceNotFoundError as e:
+            logger.error(f"Device not found: {str(e)}")
+            raise HTTPException(
+                status_code=404,
+                detail=f"Device with id {device_id} not found"
+            )
+
+        except DatabaseError as e:
+            logger.error(f"Database error retrieving readings in time range: {str(e)}")
+            raise HTTPException(
+                status_code=500,
+                detail="Failed to retrieve readings in time range due to database error"
+            )
+
+    def batch_create_readings(self, readings: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """
+        Create multiple device readings at once
+
+        Args:
+            readings: List of reading data dictionaries, each containing
+                     device_id, time, and optional sensor readings
+
+        Returns:
+            Response indicating the status of the operation
+        """
+        results = {
+            "status": "success",
+            "message": "Batch processed",
+            "total": len(readings),
+            "successful": 0,
+            "failed": 0,
+            "errors": []
+        }
+
+        for reading in readings:
+            try:
+                device_id = reading.get("device_id")
+                time = reading.get("time")
+
+                if not device_id or not time:
+                    results["failed"] += 1
+                    results["errors"].append({
+                        "device_id": device_id,
+                        "time": time,
+                        "error": "Missing required device_id or time"
+                    })
+                    continue
+
+                create_device_reading(
+                    device_id=device_id,
+                    time=time,
+                    humidity=reading.get("humidity"),
+                    light_intensity=reading.get("light_intensity"),
+                    temperature=reading.get("temperature")
+                )
+
+                results["successful"] += 1
+
+            except (DeviceNotFoundError, DeviceReadingAlreadyExistsError, DatabaseError) as e:
+                results["failed"] += 1
+                results["errors"].append({
+                    "device_id": reading.get("device_id"),
+                    "time": reading.get("time"),
+                    "error": str(e)
+                })
+
+        if results["failed"] > 0:
+            logger.warning(f"Batch process completed with {results['failed']} errors")
+        else:
+            logger.info(f"Batch process completed successfully for {results['successful']} readings")
+
+        return results
+
+    def get_aggregated_readings(self, device_id: int, start_time: datetime, end_time: datetime) -> Dict[str, Any]:
+        """
+        Get aggregated stats for readings in a time range (min/max/avg)
+
+        Args:
+            device_id: The ID of the device
+            start_time: Start of the time range
+            end_time: End of the time range
+
+        Returns:
+            Dictionary with aggregated stats
+        """
+        try:
+            readings = get_readings_in_time_range(
+                device_id=device_id,
+                start_time=start_time,
+                end_time=end_time
+            )
+
+            if not readings:
+                return {
+                    "device_id": device_id,
+                    "start_time": start_time,
+                    "end_time": end_time,
+                    "reading_count": 0,
+                    "humidity": None,
+                    "light_intensity": None,
+                    "temperature": None
+                }
+
+            # Extract readings and filter out None values
+            humidity_readings = [r.humidity for r in readings if r.humidity is not None]
+            light_intensity_readings = [r.light_intensity for r in readings if r.light_intensity is not None]
+            temperature_readings = [r.temperature for r in readings if r.temperature is not None]
+
+            # Calculate aggregates
+            result = {
+                "device_id": device_id,
+                "start_time": start_time,
+                "end_time": end_time,
+                "reading_count": len(readings),
+                "humidity": {
+                    "min": min(humidity_readings) if humidity_readings else None,
+                    "max": max(humidity_readings) if humidity_readings else None,
+                    "avg": sum(humidity_readings) / len(humidity_readings) if humidity_readings else None
+                },
+                "light_intensity": {
+                    "min": min(light_intensity_readings) if light_intensity_readings else None,
+                    "max": max(light_intensity_readings) if light_intensity_readings else None,
+                    "avg": sum(light_intensity_readings) / len(
+                        light_intensity_readings) if light_intensity_readings else None
+                },
+                "temperature": {
+                    "min": min(temperature_readings) if temperature_readings else None,
+                    "max": max(temperature_readings) if temperature_readings else None,
+                    "avg": sum(temperature_readings) / len(temperature_readings) if temperature_readings else None
+                }
+            }
+
+            return result
+
+        except DeviceNotFoundError as e:
+            logger.error(f"Device not found: {str(e)}")
+            raise HTTPException(
+                status_code=404,
+                detail=f"Device with id {device_id} not found"
+            )
+
+        except DatabaseError as e:
+            logger.error(f"Database error retrieving aggregated readings: {str(e)}")
+            raise HTTPException(
+                status_code=500,
+                detail="Failed to retrieve aggregated readings due to database error"
+            )

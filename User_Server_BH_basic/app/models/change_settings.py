@@ -1,7 +1,7 @@
 from pydantic import BaseModel, Field
 from datetime import datetime, time
 
-class ChangeSettingsInput(BaseModel):
+class ChangeSettingsCreate(BaseModel):
     max_humidity: float = Field(..., alias="maxHumidity")
     min_humidity: float = Field(..., alias="minHumidity")
     max_brightness: float = Field(..., alias="maxBrightness")

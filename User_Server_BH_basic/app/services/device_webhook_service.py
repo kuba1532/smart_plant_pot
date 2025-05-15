@@ -1,7 +1,7 @@
 import requests
 from typing import Tuple
-from app.models.change_settings import ChangeSettingsInput
-from app.models.send_command import SendCommandInput
+from app.models.change_settings import ChangeSettingsCreate
+from app.models.send_command import SendCommandCreate
 
 # Replace with actual device server endpoint
 DEVICE_SERVER_BASE_URL = "https://34.10.121.99:443/api/"
@@ -9,7 +9,7 @@ DEVICE_SERVER_UPDATE_SETTINGS_URL = "Settings/update-settings"
 DEVICE_SERVER_COMMAND_URL = "Command/send-command"
 
 
-def send_settings_to_device_server(settings: ChangeSettingsInput) -> Tuple[bool, str]:
+def send_settings_to_device_server(settings: ChangeSettingsCreate) -> Tuple[bool, str]:
     """
     Sends the validated settings to the device server via webhook.
 
@@ -41,7 +41,7 @@ def send_settings_to_device_server(settings: ChangeSettingsInput) -> Tuple[bool,
     except requests.RequestException as e:
         return False, f"Failed to send settings to device server: {str(e)}"
 
-def send_command_to_device_server(command: SendCommandInput) -> Tuple[bool, str]:
+def send_command_to_device_server(command: SendCommandCreate) -> Tuple[bool, str]:
     try:
         # Convert Pydantic model to dictionary with aliased field names
         command_dict = command.dict(by_alias=True)

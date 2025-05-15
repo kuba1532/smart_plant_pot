@@ -1,13 +1,13 @@
 from datetime import datetime
 
 from fastapi import APIRouter, HTTPException
-from app.models.change_settings import ChangeSettingsInput, ChangeSettingsOutput
+from app.models.change_settings import ChangeSettingsCreate, ChangeSettingsOutput
 from app.services.device_webhook_service import send_settings_to_device_server
 
 router = APIRouter()
 
 @router.post("/change-settings", response_model=ChangeSettingsOutput)
-def update_settings(data: ChangeSettingsInput):
+def update_settings(data: ChangeSettingsCreate):
     success, message = send_settings_to_device_server(data)
 
     if not success:
