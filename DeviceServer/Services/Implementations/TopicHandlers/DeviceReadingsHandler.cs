@@ -41,7 +41,7 @@ namespace DeviceServer.Services.Implementations.TopicHandlers
 
         public bool CanHandle(string topic)
         {
-            return true; //topic.StartsWith("device/") && topic.Contains("/readings/sendReading");
+            return topic.StartsWith("device/") && topic.Contains("/readings/sendReading");
         }
     }
 }

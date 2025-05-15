@@ -1,0 +1,513 @@
+Folder PATH listing for volume Windows
+Volume serial number is F498-528C
+C:.
+ÃÄÄÄ.idea
+³   ÀÄÄÄinspectionProfiles
+ÃÄÄÄ.venv
+³   ÃÄÄÄinclude
+³   ³   ÀÄÄÄsite
+³   ³       ÀÄÄÄpython3.12
+³   ³           ÀÄÄÄgreenlet
+³   ÃÄÄÄLib
+³   ³   ÀÄÄÄsite-packages
+³   ³       ÃÄÄÄalembic
+³   ³       ³   ÃÄÄÄautogenerate
+³   ³       ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ÃÄÄÄddl
+³   ³       ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ÃÄÄÄoperations
+³   ³       ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ÃÄÄÄruntime
+³   ³       ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ÃÄÄÄscript
+³   ³       ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ÃÄÄÄtemplates
+³   ³       ³   ³   ÃÄÄÄasync
+³   ³       ³   ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ³   ÃÄÄÄgeneric
+³   ³       ³   ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ³   ÀÄÄÄmultidb
+³   ³       ³   ³       ÀÄÄÄ__pycache__
+³   ³       ³   ÃÄÄÄtesting
+³   ³       ³   ³   ÃÄÄÄplugin
+³   ³       ³   ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ³   ÃÄÄÄsuite
+³   ³       ³   ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ÃÄÄÄutil
+³   ³       ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ÀÄÄÄ__pycache__
+³   ³       ÃÄÄÄalembic-1.15.2.dist-info
+³   ³       ³   ÀÄÄÄlicenses
+³   ³       ÃÄÄÄannotated_types
+³   ³       ³   ÀÄÄÄ__pycache__
+³   ³       ÃÄÄÄannotated_types-0.7.0.dist-info
+³   ³       ³   ÀÄÄÄlicenses
+³   ³       ÃÄÄÄanyio
+³   ³       ³   ÃÄÄÄabc
+³   ³       ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ÃÄÄÄstreams
+³   ³       ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ÃÄÄÄ_backends
+³   ³       ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ÃÄÄÄ_core
+³   ³       ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ÀÄÄÄ__pycache__
+³   ³       ÃÄÄÄanyio-4.8.0.dist-info
+³   ³       ÃÄÄÄasyncpg
+³   ³       ³   ÃÄÄÄexceptions
+³   ³       ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ÃÄÄÄpgproto
+³   ³       ³   ³   ÃÄÄÄcodecs
+³   ³       ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ÃÄÄÄprotocol
+³   ³       ³   ³   ÃÄÄÄcodecs
+³   ³       ³   ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ³   ÃÄÄÄrecord
+³   ³       ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ÃÄÄÄ_testbase
+³   ³       ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ÀÄÄÄ__pycache__
+³   ³       ÃÄÄÄasyncpg-0.30.0.dist-info
+³   ³       ÃÄÄÄblinker
+³   ³       ³   ÀÄÄÄ__pycache__
+³   ³       ÃÄÄÄblinker-1.9.0.dist-info
+³   ³       ÃÄÄÄcertifi
+³   ³       ³   ÀÄÄÄ__pycache__
+³   ³       ÃÄÄÄcertifi-2025.4.26.dist-info
+³   ³       ³   ÀÄÄÄlicenses
+³   ³       ÃÄÄÄcharset_normalizer
+³   ³       ³   ÃÄÄÄcli
+³   ³       ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ÀÄÄÄ__pycache__
+³   ³       ÃÄÄÄcharset_normalizer-3.4.2.dist-info
+³   ³       ³   ÀÄÄÄlicenses
+³   ³       ÃÄÄÄclick
+³   ³       ³   ÀÄÄÄ__pycache__
+³   ³       ÃÄÄÄclick-8.1.8.dist-info
+³   ³       ÃÄÄÄcolorama
+³   ³       ³   ÃÄÄÄtests
+³   ³       ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ÀÄÄÄ__pycache__
+³   ³       ÃÄÄÄcolorama-0.4.6.dist-info
+³   ³       ³   ÀÄÄÄlicenses
+³   ³       ÃÄÄÄdotenv
+³   ³       ³   ÀÄÄÄ__pycache__
+³   ³       ÃÄÄÄfastapi
+³   ³       ³   ÃÄÄÄdependencies
+³   ³       ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ÃÄÄÄmiddleware
+³   ³       ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ÃÄÄÄopenapi
+³   ³       ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ÃÄÄÄsecurity
+³   ³       ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ÀÄÄÄ__pycache__
+³   ³       ÃÄÄÄfastapi-0.115.6.dist-info
+³   ³       ³   ÀÄÄÄlicenses
+³   ³       ÃÄÄÄflask
+³   ³       ³   ÃÄÄÄjson
+³   ³       ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ÃÄÄÄsansio
+³   ³       ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ÀÄÄÄ__pycache__
+³   ³       ÃÄÄÄflask-3.1.0.dist-info
+³   ³       ÃÄÄÄgreenlet
+³   ³       ³   ÃÄÄÄplatform
+³   ³       ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ÃÄÄÄtests
+³   ³       ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ÀÄÄÄ__pycache__
+³   ³       ÃÄÄÄgreenlet-3.2.2.dist-info
+³   ³       ³   ÀÄÄÄlicenses
+³   ³       ÃÄÄÄgunicorn
+³   ³       ³   ÃÄÄÄapp
+³   ³       ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ÃÄÄÄhttp
+³   ³       ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ÃÄÄÄinstrument
+³   ³       ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ÃÄÄÄworkers
+³   ³       ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ÀÄÄÄ__pycache__
+³   ³       ÃÄÄÄgunicorn-23.0.0.dist-info
+³   ³       ÃÄÄÄh11
+³   ³       ³   ÃÄÄÄtests
+³   ³       ³   ³   ÃÄÄÄdata
+³   ³       ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ÀÄÄÄ__pycache__
+³   ³       ÃÄÄÄh11-0.14.0.dist-info
+³   ³       ÃÄÄÄidna
+³   ³       ³   ÀÄÄÄ__pycache__
+³   ³       ÃÄÄÄidna-3.10.dist-info
+³   ³       ÃÄÄÄitsdangerous
+³   ³       ³   ÀÄÄÄ__pycache__
+³   ³       ÃÄÄÄitsdangerous-2.2.0.dist-info
+³   ³       ÃÄÄÄjinja2
+³   ³       ³   ÀÄÄÄ__pycache__
+³   ³       ÃÄÄÄjinja2-3.1.5.dist-info
+³   ³       ÃÄÄÄmako
+³   ³       ³   ÃÄÄÄext
+³   ³       ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ÃÄÄÄtesting
+³   ³       ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ÀÄÄÄ__pycache__
+³   ³       ÃÄÄÄmako-1.3.10.dist-info
+³   ³       ³   ÀÄÄÄlicenses
+³   ³       ÃÄÄÄmarkupsafe
+³   ³       ³   ÀÄÄÄ__pycache__
+³   ³       ÃÄÄÄMarkupSafe-3.0.2.dist-info
+³   ³       ÃÄÄÄmysql
+³   ³       ³   ÃÄÄÄconnector
+³   ³       ³   ³   ÃÄÄÄaio
+³   ³       ³   ³   ³   ÃÄÄÄplugins
+³   ³       ³   ³   ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ³   ÃÄÄÄdjango
+³   ³       ³   ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ³   ÃÄÄÄlocales
+³   ³       ³   ³   ³   ÃÄÄÄeng
+³   ³       ³   ³   ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ³   ÃÄÄÄopentelemetry
+³   ³       ³   ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ³   ÃÄÄÄplugins
+³   ³       ³   ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ÃÄÄÄvendor
+³   ³       ³   ³   ÀÄÄÄplugin
+³   ³       ³   ÀÄÄÄ__pycache__
+³   ³       ÃÄÄÄmysql_connector_python-9.2.0.dist-info
+³   ³       ÃÄÄÄpackaging
+³   ³       ³   ÃÄÄÄlicenses
+³   ³       ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ÀÄÄÄ__pycache__
+³   ³       ÃÄÄÄpackaging-24.2.dist-info
+³   ³       ÃÄÄÄpip
+³   ³       ³   ÃÄÄÄ_internal
+³   ³       ³   ³   ÃÄÄÄcli
+³   ³       ³   ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ³   ÃÄÄÄcommands
+³   ³       ³   ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ³   ÃÄÄÄdistributions
+³   ³       ³   ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ³   ÃÄÄÄindex
+³   ³       ³   ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ³   ÃÄÄÄlocations
+³   ³       ³   ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ³   ÃÄÄÄmetadata
+³   ³       ³   ³   ³   ÃÄÄÄimportlib
+³   ³       ³   ³   ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ³   ÃÄÄÄmodels
+³   ³       ³   ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ³   ÃÄÄÄnetwork
+³   ³       ³   ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ³   ÃÄÄÄoperations
+³   ³       ³   ³   ³   ÃÄÄÄbuild
+³   ³       ³   ³   ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ³   ³   ÃÄÄÄinstall
+³   ³       ³   ³   ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ³   ÃÄÄÄreq
+³   ³       ³   ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ³   ÃÄÄÄresolution
+³   ³       ³   ³   ³   ÃÄÄÄlegacy
+³   ³       ³   ³   ³   ÃÄÄÄresolvelib
+³   ³       ³   ³   ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ³   ÃÄÄÄutils
+³   ³       ³   ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ³   ÃÄÄÄvcs
+³   ³       ³   ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ÃÄÄÄ_vendor
+³   ³       ³   ³   ÃÄÄÄcachecontrol
+³   ³       ³   ³   ³   ÃÄÄÄcaches
+³   ³       ³   ³   ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ³   ÃÄÄÄcertifi
+³   ³       ³   ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ³   ÃÄÄÄchardet
+³   ³       ³   ³   ³   ÃÄÄÄcli
+³   ³       ³   ³   ³   ÃÄÄÄmetadata
+³   ³       ³   ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ³   ÃÄÄÄcolorama
+³   ³       ³   ³   ³   ÀÄÄÄtests
+³   ³       ³   ³   ÃÄÄÄdistlib
+³   ³       ³   ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ³   ÃÄÄÄdistro
+³   ³       ³   ³   ÃÄÄÄidna
+³   ³       ³   ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ³   ÃÄÄÄmsgpack
+³   ³       ³   ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ³   ÃÄÄÄpackaging
+³   ³       ³   ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ³   ÃÄÄÄpkg_resources
+³   ³       ³   ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ³   ÃÄÄÄplatformdirs
+³   ³       ³   ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ³   ÃÄÄÄpygments
+³   ³       ³   ³   ³   ÃÄÄÄfilters
+³   ³       ³   ³   ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ³   ³   ÃÄÄÄformatters
+³   ³       ³   ³   ³   ÃÄÄÄlexers
+³   ³       ³   ³   ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ³   ³   ÃÄÄÄstyles
+³   ³       ³   ³   ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ³   ÃÄÄÄpyparsing
+³   ³       ³   ³   ³   ÃÄÄÄdiagram
+³   ³       ³   ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ³   ÃÄÄÄpyproject_hooks
+³   ³       ³   ³   ³   ÃÄÄÄ_in_process
+³   ³       ³   ³   ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ³   ÃÄÄÄrequests
+³   ³       ³   ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ³   ÃÄÄÄresolvelib
+³   ³       ³   ³   ³   ÃÄÄÄcompat
+³   ³       ³   ³   ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ³   ÃÄÄÄrich
+³   ³       ³   ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ³   ÃÄÄÄtenacity
+³   ³       ³   ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ³   ÃÄÄÄtomli
+³   ³       ³   ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ³   ÃÄÄÄurllib3
+³   ³       ³   ³   ³   ÃÄÄÄcontrib
+³   ³       ³   ³   ³   ³   ÃÄÄÄ_securetransport
+³   ³       ³   ³   ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ³   ³   ÃÄÄÄpackages
+³   ³       ³   ³   ³   ³   ÃÄÄÄbackports
+³   ³       ³   ³   ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ³   ³   ÃÄÄÄutil
+³   ³       ³   ³   ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ³   ÃÄÄÄwebencodings
+³   ³       ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ÀÄÄÄ__pycache__
+³   ³       ÃÄÄÄpip-23.2.1.dist-info
+³   ³       ÃÄÄÄpsycopg
+³   ³       ³   ÃÄÄÄcrdb
+³   ³       ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ÃÄÄÄpq
+³   ³       ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ÃÄÄÄtypes
+³   ³       ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ÀÄÄÄ__pycache__
+³   ³       ÃÄÄÄpsycopg-3.2.3.dist-info
+³   ³       ÃÄÄÄpsycopg2
+³   ³       ³   ÀÄÄÄ__pycache__
+³   ³       ÃÄÄÄpsycopg2_binary-2.9.10.dist-info
+³   ³       ÃÄÄÄpsycopg_binary
+³   ³       ³   ÀÄÄÄ__pycache__
+³   ³       ÃÄÄÄpsycopg_binary-3.2.3.dist-info
+³   ³       ÃÄÄÄpsycopg_binary.libs
+³   ³       ÃÄÄÄpsycopg_pool
+³   ³       ³   ÀÄÄÄ__pycache__
+³   ³       ÃÄÄÄpsycopg_pool-3.2.4.dist-info
+³   ³       ÃÄÄÄpydantic
+³   ³       ³   ÃÄÄÄdeprecated
+³   ³       ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ÃÄÄÄexperimental
+³   ³       ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ÃÄÄÄplugin
+³   ³       ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ÃÄÄÄv1
+³   ³       ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ÃÄÄÄ_internal
+³   ³       ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ÀÄÄÄ__pycache__
+³   ³       ÃÄÄÄpydantic-2.10.4.dist-info
+³   ³       ³   ÀÄÄÄlicenses
+³   ³       ÃÄÄÄpydantic_core
+³   ³       ³   ÀÄÄÄ__pycache__
+³   ³       ÃÄÄÄpydantic_core-2.27.2.dist-info
+³   ³       ³   ÀÄÄÄlicenses
+³   ³       ÃÄÄÄpydantic_settings
+³   ³       ³   ÀÄÄÄ__pycache__
+³   ³       ÃÄÄÄpydantic_settings-2.7.1.dist-info
+³   ³       ³   ÀÄÄÄlicenses
+³   ³       ÃÄÄÄpython_dotenv-1.0.1.dist-info
+³   ³       ÃÄÄÄrequests
+³   ³       ³   ÀÄÄÄ__pycache__
+³   ³       ÃÄÄÄrequests-2.32.3.dist-info
+³   ³       ÃÄÄÄsasl2
+³   ³       ÃÄÄÄsniffio
+³   ³       ³   ÃÄÄÄ_tests
+³   ³       ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ÀÄÄÄ__pycache__
+³   ³       ÃÄÄÄsniffio-1.3.1.dist-info
+³   ³       ÃÄÄÄsqlalchemy
+³   ³       ³   ÃÄÄÄconnectors
+³   ³       ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ÃÄÄÄcyextension
+³   ³       ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ÃÄÄÄdialects
+³   ³       ³   ³   ÃÄÄÄmssql
+³   ³       ³   ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ³   ÃÄÄÄmysql
+³   ³       ³   ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ³   ÃÄÄÄoracle
+³   ³       ³   ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ³   ÃÄÄÄpostgresql
+³   ³       ³   ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ³   ÃÄÄÄsqlite
+³   ³       ³   ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ÃÄÄÄengine
+³   ³       ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ÃÄÄÄevent
+³   ³       ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ÃÄÄÄext
+³   ³       ³   ³   ÃÄÄÄasyncio
+³   ³       ³   ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ³   ÃÄÄÄdeclarative
+³   ³       ³   ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ³   ÃÄÄÄmypy
+³   ³       ³   ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ÃÄÄÄfuture
+³   ³       ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ÃÄÄÄorm
+³   ³       ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ÃÄÄÄpool
+³   ³       ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ÃÄÄÄsql
+³   ³       ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ÃÄÄÄtesting
+³   ³       ³   ³   ÃÄÄÄfixtures
+³   ³       ³   ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ³   ÃÄÄÄplugin
+³   ³       ³   ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ³   ÃÄÄÄsuite
+³   ³       ³   ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ÃÄÄÄutil
+³   ³       ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ÀÄÄÄ__pycache__
+³   ³       ÃÄÄÄsqlalchemy-2.0.40.dist-info
+³   ³       ³   ÀÄÄÄlicenses
+³   ³       ÃÄÄÄstarlette
+³   ³       ³   ÃÄÄÄmiddleware
+³   ³       ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ÀÄÄÄ__pycache__
+³   ³       ÃÄÄÄstarlette-0.41.3.dist-info
+³   ³       ³   ÀÄÄÄlicenses
+³   ³       ÃÄÄÄtyping_extensions-4.12.2.dist-info
+³   ³       ÃÄÄÄtyping_inspection
+³   ³       ³   ÀÄÄÄ__pycache__
+³   ³       ÃÄÄÄtyping_inspection-0.4.0.dist-info
+³   ³       ³   ÀÄÄÄlicenses
+³   ³       ÃÄÄÄtzdata
+³   ³       ³   ÃÄÄÄzoneinfo
+³   ³       ³   ³   ÃÄÄÄAfrica
+³   ³       ³   ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ³   ÃÄÄÄAmerica
+³   ³       ³   ³   ³   ÃÄÄÄArgentina
+³   ³       ³   ³   ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ³   ³   ÃÄÄÄIndiana
+³   ³       ³   ³   ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ³   ³   ÃÄÄÄKentucky
+³   ³       ³   ³   ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ³   ³   ÃÄÄÄNorth_Dakota
+³   ³       ³   ³   ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ³   ÃÄÄÄAntarctica
+³   ³       ³   ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ³   ÃÄÄÄArctic
+³   ³       ³   ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ³   ÃÄÄÄAsia
+³   ³       ³   ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ³   ÃÄÄÄAtlantic
+³   ³       ³   ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ³   ÃÄÄÄAustralia
+³   ³       ³   ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ³   ÃÄÄÄBrazil
+³   ³       ³   ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ³   ÃÄÄÄCanada
+³   ³       ³   ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ³   ÃÄÄÄChile
+³   ³       ³   ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ³   ÃÄÄÄEtc
+³   ³       ³   ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ³   ÃÄÄÄEurope
+³   ³       ³   ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ³   ÃÄÄÄIndian
+³   ³       ³   ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ³   ÃÄÄÄMexico
+³   ³       ³   ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ³   ÃÄÄÄPacific
+³   ³       ³   ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ³   ÃÄÄÄUS
+³   ³       ³   ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ÀÄÄÄ__pycache__
+³   ³       ÃÄÄÄtzdata-2024.2.dist-info
+³   ³       ÃÄÄÄurllib3
+³   ³       ³   ÃÄÄÄcontrib
+³   ³       ³   ³   ÃÄÄÄemscripten
+³   ³       ³   ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ÃÄÄÄhttp2
+³   ³       ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ÃÄÄÄutil
+³   ³       ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ÀÄÄÄ__pycache__
+³   ³       ÃÄÄÄurllib3-2.4.0.dist-info
+³   ³       ³   ÀÄÄÄlicenses
+³   ³       ÃÄÄÄuvicorn
+³   ³       ³   ÃÄÄÄlifespan
+³   ³       ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ÃÄÄÄloops
+³   ³       ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ÃÄÄÄmiddleware
+³   ³       ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ÃÄÄÄprotocols
+³   ³       ³   ³   ÃÄÄÄhttp
+³   ³       ³   ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ³   ÃÄÄÄwebsockets
+³   ³       ³   ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ÃÄÄÄsupervisors
+³   ³       ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ÀÄÄÄ__pycache__
+³   ³       ÃÄÄÄuvicorn-0.34.0.dist-info
+³   ³       ³   ÀÄÄÄlicenses
+³   ³       ÃÄÄÄwerkzeug
+³   ³       ³   ÃÄÄÄdatastructures
+³   ³       ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ÃÄÄÄdebug
+³   ³       ³   ³   ÃÄÄÄshared
+³   ³       ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ÃÄÄÄmiddleware
+³   ³       ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ÃÄÄÄrouting
+³   ³       ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ÃÄÄÄsansio
+³   ³       ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ÃÄÄÄwrappers
+³   ³       ³   ³   ÀÄÄÄ__pycache__
+³   ³       ³   ÀÄÄÄ__pycache__
+³   ³       ÃÄÄÄwerkzeug-3.1.3.dist-info
+³   ³       ÀÄÄÄ__pycache__
+³   ÀÄÄÄScripts
+ÃÄÄÄapp
+³   ÃÄÄÄapi
+³   ³   ÃÄÄÄendpoints
+³   ³   ³   ÀÄÄÄ__pycache__
+³   ³   ÀÄÄÄ__pycache__
+³   ÃÄÄÄcore
+³   ³   ÀÄÄÄ__pycache__
+³   ÃÄÄÄdb
+³   ³   ÃÄÄÄcrud
+³   ³   ÀÄÄÄ__pycache__
+³   ÃÄÄÄmodels
+³   ³   ÀÄÄÄ__pycache__
+³   ÃÄÄÄservices
+³   ³   ÀÄÄÄ__pycache__
+³   ÃÄÄÄutils
+³   ÀÄÄÄ__pycache__
+ÀÄÄÄ__pycache__
