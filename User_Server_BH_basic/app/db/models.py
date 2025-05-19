@@ -23,15 +23,18 @@ class Device(Base):
     id = Column(Integer, primary_key=True, index=True)
     device_id = Column(String, unique=True, index=True)
     name = Column(String)
-    type = Column(String)
+    # Change the type column to a foreign key
+    type_code = Column(String, ForeignKey("device_types.type_code"))
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
-    # Add this line to create the foreign key
+    # Foreign key for the owner
     owner_id = Column(Integer, ForeignKey("users.id"))
 
     # Relationships
     owner = relationship("User", back_populates="devices")
     readings = relationship("DeviceReading", back_populates="device")
+    # Add relationship to Device_type
+    device_type = relationship("Device_type")
 
 
 class DeviceReading(Base):
@@ -53,3 +56,14 @@ class DeviceReading(Base):
 
     # Relationship
     device = relationship("Device", back_populates="readings")
+
+
+class Device_type(Base):
+    __tablename__ = "device_types"
+
+    id = Column(Integer, primary_key=True, index=True)
+    type_code = Column(String, unique=True, index=True)
+    name = Column(String, unique=True)
+
+    # Optional: Add relationship to devices
+    devices = relationship("Device", back_populates="device_type")

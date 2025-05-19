@@ -1,25 +1,11 @@
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from app.db.base import SessionLocal, with_db_session
+from app.db.errors import UserAlreadyExistsError, DatabaseError
 from app.db.models import User
 import logging
 
 # Set up logging
 logger = logging.getLogger(__name__)
-
-
-class UserNotFoundError(Exception):
-    """Exception raised when a user is not found."""
-    pass
-
-
-class UserAlreadyExistsError(Exception):
-    """Exception raised when attempting to create a duplicate user."""
-    pass
-
-
-class DatabaseError(Exception):
-    """Exception raised for general database errors."""
-    pass
 
 
 @with_db_session

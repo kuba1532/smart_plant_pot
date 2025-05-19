@@ -25,3 +25,6 @@ class StatsResponse(BaseModel):
     humidity: Optional[dict] = None
     light_intensity: Optional[dict] = None
     temperature: Optional[dict] = None
+
+    class Config:
+        orm_mode = True

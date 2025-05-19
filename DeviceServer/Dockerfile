@@ -12,17 +12,22 @@ FROM mcr.microsoft.com/dotnet/aspnet:8.0
 WORKDIR /app
 COPY --from=build /app .
 
+# Install OpenSSL for certificate generation
+RUN apt-get update && apt-get install -y openssl && apt-get clean
+
 # Create directory for certificates
 RUN mkdir -p /app/certs
 
-# Configure ports and environment variables
+# Configure ports
 ENV HTTP_PORT=8080
 ENV HTTPS_PORT=8443
 EXPOSE ${HTTP_PORT} ${HTTPS_PORT}
 
-# Configure the application to listen on the correct ports
+# Configure the application to listen on both HTTP and HTTPS ports
 ENV ASPNETCORE_URLS=http://+:${HTTP_PORT};https://+:${HTTPS_PORT}
-ENV ASPNETCORE_Kestrel__Certificates__Default__Path=/app/certs/certificate.pfx
-ENV ASPNETCORE_Kestrel__Certificates__Default__Password=''
 
-ENTRYPOINT ["dotnet", "DeviceServer.dll"]
+# Set up entry point script to generate certificate if needed and start the app
+COPY docker-entrypoint.sh /app/
+RUN chmod +x /app/docker-entrypoint.sh
+
+ENTRYPOINT ["/app/docker-entrypoint.sh"]

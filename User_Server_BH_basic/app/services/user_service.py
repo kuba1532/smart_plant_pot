@@ -7,10 +7,9 @@ from app.db.crud.users import (
     create_user,
     get_user_by_clerk_id,
     delete_user,
-    UserNotFoundError,
-    UserAlreadyExistsError,
     DatabaseError
 )
+from app.db.errors import UserAlreadyExistsError, UserNotFoundError
 
 # Configure logger
 logger = logging.getLogger(__name__)
