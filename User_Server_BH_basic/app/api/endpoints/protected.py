@@ -9,5 +9,4 @@ router = APIRouter()
 async def protected_route(user=Depends(get_current_user)):
     # Now user is the decoded JWT payload (dict-like)
     print(user)
-    print(user['metadata']['role'])
     return {"message": f"Hello, {user['sub']}! This is a protected route."}
