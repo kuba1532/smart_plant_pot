@@ -13,5 +13,5 @@ class SendCommandCreate(BaseModel):
 
 class SendCommandOutput(BaseModel):
     device_id: int
-    status: string
-    message: string
+    status: str
+    message: str
