@@ -24,7 +24,8 @@ def authorize_device(user, id: int):
     user_id = user.id
     users_devices = get_devices_by_owner_id(user_id)
 
-    print(user_id)
+    print("User id: " + user_id)
+    print("devices owner id:")
     for device in users_devices:
         print(device.owner_id)
 
