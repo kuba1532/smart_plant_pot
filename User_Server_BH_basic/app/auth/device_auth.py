@@ -24,9 +24,9 @@ def authorize_device(user, id: int):
     user_id = user.id
     users_devices = get_devices_by_owner_id(user_id)
 
-    print(users_devices)
+    print(user_id)
     for device in users_devices:
-        print(device)
+        print(device.id)
 
     # Check if any device in the list has the matching device_id
     if not any(device.id == id for device in users_devices) or not is_matching_role(user, "admin"):
