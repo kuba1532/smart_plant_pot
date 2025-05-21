@@ -1,7 +1,7 @@
 // app/(home)/device/[id].tsx
-import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, RefreshControl, Dimensions } from 'react-native';
-import { useLocalSearchParams, Stack } from 'expo-router';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, RefreshControl, Dimensions, TouchableOpacity } from 'react-native';
+import { useLocalSearchParams, Stack, Link } from 'expo-router'; // Added Link and TouchableOpacity
 import { LineChart } from 'react-native-chart-kit';
 import { useApi } from '@/app/services/api';
 import { Device } from '@/app/context/UserDataContext';
@@ -20,23 +20,56 @@ interface Reading {
 
 const screenWidth = Dimensions.get('window').width;
 
+// Chart configuration
+const chartConfig = {
+    backgroundColor: colors.background,
+    backgroundGradientFrom: '#ffffff',
+    backgroundGradientTo: '#f7f7f7',
+    decimalPlaces: 1,
+    color: (opacity = 1) => `rgba(50, 50, 50, ${opacity})`,
+    labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+    style: {
+        borderRadius: borderRadius.md,
+    },
+    propsForDots: {
+        r: '3',
+        strokeWidth: '1',
+        stroke: colors.primaryDark,
+    },
+    propsForBackgroundLines: {
+        strokeDasharray: '',
+        stroke: colors.border,
+    },
+};
+
 export default function DeviceDetailsScreen() {
     const params = useLocalSearchParams<{ id: string; deviceString: string }>();
     const [device, setDevice] = useState<Device | null>(null);
     const [readings, setReadings] = useState<Reading[]>([]);
-    const [isLoading, setIsLoading] = useState(true); // For initial data load (device info + readings)
+    const [isLoading, setIsLoading] = useState(true); // For initial device info parse
     const [isReadingsLoading, setIsReadingsLoading] = useState(true); // Specifically for readings
-    const [error, setError] = useState<string | null>(null);
+    const [error, setError] = useState<string | null>(null); // Main error for device parsing
+    const [readingsError, setReadingsError] = useState<string | null>(null); // Specific error for readings
     const [refreshing, setRefreshing] = useState(false);
-    const api = useApi();
+    const api = useApi(); // Assumes useApi is memoized correctly
 
+    // Debugging: Log when params or api reference changes
+    const prevParamsRef = useRef(params);
+    const prevApiRef = useRef(api);
+
+    // Effect to parse device information from route parameters
     useEffect(() => {
-        setIsLoading(true); // Start loading when params change
-        if (params.deviceString) {
+        console.log('DeviceDetailsScreen: Params effect running. deviceString:', params?.deviceString, 'param.id:', params?.id);
+        setIsLoading(true);
+        setDevice(null);
+        setError(null);
+        setReadingsError(null);
+        setReadings([]);
+        setIsReadingsLoading(true);
+
+        if (params?.deviceString && params?.id) {
             try {
                 const parsedDevice = JSON.parse(params.deviceString) as Device;
-                setDevice(parsedDevice);
-                // Device details are set, now fetch readings if ID matches
                 if (String(parsedDevice.id) !== params.id) {
                     console.warn(`Device ID mismatch: Parsed ID ${parsedDevice.id}, Param ID ${params.id}`);
                     setError("Device information mismatch. Please go back and try again.");
@@ -44,6 +77,8 @@ export default function DeviceDetailsScreen() {
                     setIsReadingsLoading(false);
                     return;
                 }
+                setDevice(parsedDevice);
+                setIsLoading(false); // Device info parsed successfully
             } catch (e) {
                 console.error("Failed to parse deviceString:", e);
                 setError("Failed to load device details from parameters. Please go back and try again.");
@@ -52,66 +87,101 @@ export default function DeviceDetailsScreen() {
                 setIsReadingsLoading(false);
             }
         } else {
-            setError("Device details not provided. Please go back and try again.");
+            setError("Device details not provided or ID missing. Please go back and try again.");
             setDevice(null);
             setIsLoading(false);
             setIsReadingsLoading(false);
         }
-    }, [params.deviceString, params.id]);
+    }, [params?.deviceString, params?.id]); // Only rerun if these specific properties change
 
-    const fetchReadingsData = useCallback(async (isRefreshing = false) => {
-        if (!device || String(device.id) !== params.id) {
-            // Don't fetch if device isn't set or ID mismatch
-            if(device) setError("Device ID mismatch, cannot fetch readings.");
+    // Effect to fetch readings when device is set, or when refreshing
+    useEffect(() => {
+        if (error) { // If there's a main error (e.g. device parsing failed)
+            console.log('DeviceDetailsScreen: Skipping readings fetch due to main error:', error);
             setIsReadingsLoading(false);
-            if(isRefreshing) setRefreshing(false);
+            if (refreshing) setRefreshing(false);
             return;
         }
 
-        if (!isRefreshing) setIsReadingsLoading(true);
-        setError(null); // Clear previous errors specific to readings
+        const loadReadings = async () => {
+            if (!device) {
+                console.log('DeviceDetailsScreen: loadReadings - device is null, skipping fetch.');
+                setIsReadingsLoading(false);
+                if (refreshing) setRefreshing(false);
+                return;
+            }
 
-        try {
-            const fetchedReadings = await api.getDeviceReadings(device.id, 90);
-            setReadings(fetchedReadings || []);
-        } catch (e) {
-            console.error("Failed to fetch readings:", e);
-            setError(e instanceof Error ? `Readings Error: ${e.message}` : "Failed to load readings data.");
-            setReadings([]);
-        } finally {
-            setIsReadingsLoading(false);
-            if(isRefreshing) setRefreshing(false);
-            setIsLoading(false); // Overall loading stops after first attempt to fetch readings
-        }
-    }, [device, params.id, api]);
+            if (!refreshing) {
+                setIsReadingsLoading(true);
+            }
+            setReadingsError(null);
 
-    useEffect(() => {
-        if (device && String(device.id) === params.id) { // Ensure device is set and ID matches before fetching
-            fetchReadingsData();
-        } else if (!params.deviceString && params.id) {
-            // This case means deviceString wasn't passed, already handled by first useEffect
-            // No device to fetch readings for
-            setIsLoading(false);
+            try {
+                console.log(`DeviceDetailsScreen: Attempting to fetch readings for device ID: ${device.id}. Refreshing: ${refreshing}`);
+                const fetchedReadings = await api.getDeviceReadings(device.id, 90);
+                setReadings(fetchedReadings || []);
+            } catch (e) {
+                console.error("Failed to fetch readings:", e);
+                const msg = e instanceof Error ? `Readings Error: ${e.message}` : "Failed to load readings data.";
+                setReadingsError(msg);
+                setReadings([]);
+            } finally {
+                setIsReadingsLoading(false);
+                if (refreshing) {
+                    setRefreshing(false);
+                }
+            }
+        };
+
+        if (device && !isLoading) { // device is ready and parsing is done
+            loadReadings();
+        } else if (!device && !isLoading && !error) {
+            // Device parsing finished, resulted in no device, but no explicit error string was set.
+            // Ensure loading states are correctly false.
             setIsReadingsLoading(false);
+            if (refreshing) setRefreshing(false);
         }
-    }, [device, params.id, fetchReadingsData]);
+        // Dependencies:
+        // - `device`: When the device object changes (set by the params effect).
+        // - `api`: If the api object reference changes (should be stable).
+        // - `refreshing`: When a pull-to-refresh action starts this state changes.
+        // - `isLoading`: From device parsing; ensures we only fetch after parsing is complete.
+        // - `error`: From device parsing; ensures we don't fetch if parsing failed.
+    }, [device, refreshing, isLoading, error]);
 
     const onRefresh = useCallback(() => {
-        setRefreshing(true);
-        fetchReadingsData(true); // Pass true to indicate it's a refresh
-    }, [fetchReadingsData]);
+        console.log('DeviceDetailsScreen: onRefresh called.');
+        setRefreshing(true); // This will trigger the readings useEffect
+    }, []);
 
+    if (isLoading) { // Initial loading for device parsing
+        return (
+            <Container style={styles.centered}>
+                <ActivityIndicator size="large" color={colors.primary} />
+                <Text style={styles.loadingText}>Loading device data...</Text>
+            </Container>
+        );
+    }
+
+    if (error) { // If device parsing or a fundamental issue occurred
+        return (
+            <Container style={styles.centered}>
+                <Stack.Screen options={{ title: 'Error' }} />
+                <Text style={styles.errorText}>{error}</Text>
+            </Container>
+        );
+    }
+
+    if (!device) { // Fallback, should be caught by `error` or `isLoading`
+        return (
+            <Container style={styles.centered}>
+                <Stack.Screen options={{ title: 'Device Not Found' }} />
+                <Text style={styles.errorText}>Device details are unavailable. Please go back.</Text>
+            </Container>
+        );
+    }
 
     const renderDeviceInformation = () => {
-        if (!device) {
-            // This part is shown if deviceString parsing failed or was missing
-            return (
-                <View style={styles.sectionContainer}>
-                    <Text style={styles.sectionTitle}>Device Information</Text>
-                    <Text style={styles.infoText}>Device details are unavailable.</Text>
-                </View>
-            );
-        }
         const deviceTypeName = getDeviceTypeName(device.type_code);
         return (
             <View style={styles.sectionContainer}>
@@ -129,8 +199,9 @@ export default function DeviceDetailsScreen() {
     };
 
     const renderAverageReadings = () => {
-        if (isReadingsLoading && readings.length === 0) return null; // Wait for data
-        if (readings.length === 0) return null; // No data to average
+        if (isReadingsLoading && readings.length === 0 && !refreshing) return null;
+        if (readings.length === 0 && !isReadingsLoading) return null;
+        if (readings.length === 0) return <Text style={styles.infoText}>No data for averages.</Text>;
 
         const last5Readings = readings.slice(0, 5);
         if (last5Readings.length === 0) return <Text style={styles.infoText}>Not enough data for averages.</Text>;
@@ -152,52 +223,48 @@ export default function DeviceDetailsScreen() {
     };
 
     const renderReadingsChart = () => {
-        if (isReadingsLoading && readings.length === 0) return null; // Wait for data
-        if (readings.length === 0) return null; // No data for chart
+        if (isReadingsLoading && readings.length === 0 && !refreshing) return null;
+        if (readings.length === 0 && !isReadingsLoading) return null;
+        if (readings.length === 0) return <Text style={styles.infoText}>No data for chart.</Text>;
 
         const chartReadings = [...readings].reverse();
         if (chartReadings.length < 2) return <Text style={styles.infoText}>Not enough data points for a chart (need at least 2).</Text>;
 
         const maxLabels = 6;
         const step = Math.max(1, Math.floor(chartReadings.length / maxLabels));
-        const labels = chartReadings
+        let labels = chartReadings
             .map((r, index) => (index % step === 0 ? new Date(r.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : null))
             .filter(Boolean) as string[];
 
+        // Ensure first and last labels are present if there's enough data and space
         if (labels.length === 0 && chartReadings.length > 0) {
             labels.push(new Date(chartReadings[0].time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
             if (chartReadings.length > 1) {
                 labels.push(new Date(chartReadings[chartReadings.length - 1].time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
             }
-        } else if (labels.length > 1 && chartReadings.length > 1) {
+        } else if (labels.length > 0 && chartReadings.length > 1) { // Check labels.length > 0 to avoid errors on empty labels
             const firstTime = new Date(chartReadings[0].time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
             const lastTime = new Date(chartReadings[chartReadings.length - 1].time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            if (labels[0] !== firstTime && chartReadings.length > maxLabels) labels.unshift(firstTime); // Add if not too cluttered
+            if (labels[0] !== firstTime && chartReadings.length > maxLabels) labels.unshift(firstTime);
             if (labels[labels.length - 1] !== lastTime && chartReadings.length > maxLabels) labels.push(lastTime);
         }
+        // If after all that, labels are still empty (e.g. only one data point), provide fallbacks.
+        if (labels.length === 0 && chartReadings.length === 1) {
+            labels = [new Date(chartReadings[0].time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })];
+        } else if (labels.length === 0) {
+            labels = ['Start', 'End'];
+        }
+
 
         const chartData = {
-            labels: labels.length > 0 ? labels : ['Start', 'End'],
+            labels: labels,
             datasets: [
-                {
-                    data: chartReadings.map(r => r.temperature),
-                    color: (opacity = 1) => `rgba(235, 64, 52, ${opacity})`,
-                    strokeWidth: 2,
-                },
-                {
-                    data: chartReadings.map(r => r.humidity),
-                    color: (opacity = 1) => `rgba(52, 152, 219, ${opacity})`,
-                    strokeWidth: 2,
-                },
-                {
-                    data: chartReadings.map(r => r.light_intensity),
-                    color: (opacity = 1) => `rgba(241, 196, 15, ${opacity})`,
-                    strokeWidth: 2,
-                },
+                { data: chartReadings.map(r => r.temperature), color: (opacity = 1) => `rgba(235, 64, 52, ${opacity})`, strokeWidth: 2, legend: "Temp (°C)" },
+                { data: chartReadings.map(r => r.humidity), color: (opacity = 1) => `rgba(52, 152, 219, ${opacity})`, strokeWidth: 2, legend: "Humidity (%)" },
+                { data: chartReadings.map(r => r.light_intensity), color: (opacity = 1) => `rgba(241, 196, 15, ${opacity})`, strokeWidth: 2, legend: "Light" },
             ],
-            legend: ['Temp (°C)', 'Humidity (%)', 'Light'],
+            legend: ['Temp (°C)', 'Humidity (%)', 'Light'], // This legend prop for LineChart might be specific
         };
-
         const chartWidth = Math.max(screenWidth - (spacing.lg * 2) - (spacing.md * 2) , chartReadings.length * 35);
 
         return (
@@ -211,53 +278,18 @@ export default function DeviceDetailsScreen() {
                         yAxisLabel=""
                         yAxisSuffix=""
                         yAxisInterval={1}
-                        chartConfig={{
-                            backgroundColor: colors.background,
-                            backgroundGradientFrom: '#ffffff',
-                            backgroundGradientTo: '#f7f7f7',
-                            decimalPlaces: 1,
-                            color: (opacity = 1) => `rgba(50, 50, 50, ${opacity})`,
-                            labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
-                            style: {
-                                borderRadius: borderRadius.md,
-                            },
-                            propsForDots: {
-                                r: '3',
-                                strokeWidth: '1',
-                                stroke: colors.primaryDark,
-                            },
-                            propsForBackgroundLines: {
-                                strokeDasharray: '',
-                                stroke: colors.border,
-                            },
-                        }}
+                        chartConfig={chartConfig}
                         bezier
                         style={styles.chartStyle}
+                        fromZero={false} // Adjust as needed
+                        // withShadow // Optional
+                        // withVerticalLines // Optional
+                        // withHorizontalLines // Optional
                     />
                 </ScrollView>
             </View>
         );
     };
-
-    // Main loading state for the whole screen (device details + initial readings)
-    if (isLoading) {
-        return (
-            <Container style={styles.centered}>
-                <ActivityIndicator size="large" color={colors.primary} />
-                <Text style={styles.loadingText}>Loading device data...</Text>
-            </Container>
-        );
-    }
-
-    // If device parsing failed or device details are missing, show error and stop.
-    if (!device) {
-        return (
-            <Container style={styles.centered}>
-                <Stack.Screen options={{ title: 'Error' }} />
-                <Text style={styles.errorText}>{error || "Device details could not be loaded."}</Text>
-            </Container>
-        );
-    }
 
     return (
         <Container>
@@ -269,19 +301,24 @@ export default function DeviceDetailsScreen() {
             >
                 {renderDeviceInformation()}
 
-                {error && !isReadingsLoading && <Text style={styles.errorText}>{error}</Text>}
-
-                {isReadingsLoading && readings.length === 0 && !refreshing &&
+                {isReadingsLoading && !refreshing && readings.length === 0 &&
                     <View style={styles.centeredContent}>
                         <ActivityIndicator size="small" color={colors.primary} />
                         <Text style={styles.loadingText}>Loading readings...</Text>
                     </View>
                 }
+                {readingsError && !isReadingsLoading &&
+                    <Text style={[styles.errorText, styles.specificErrorText]}>{readingsError}</Text>
+                }
 
-                {!isReadingsLoading && readings.length > 0 && renderAverageReadings()}
-                {!isReadingsLoading && readings.length > 0 && renderReadingsChart()}
+                {!isReadingsLoading && !readingsError && readings.length > 0 && (
+                    <>
+                        {renderAverageReadings()}
+                        {renderReadingsChart()}
+                    </>
+                )}
 
-                {!isReadingsLoading && readings.length === 0 && !error && device &&
+                {!isReadingsLoading && !readingsError && readings.length === 0 && device &&
                     <View style={styles.centeredContent}>
                         <Text style={styles.infoText}>No readings data found for this device.</Text>
                     </View>
@@ -305,7 +342,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         padding: spacing.lg,
     },
-    centeredContent: { // For content within the scrollview that needs centering
+    centeredContent: {
         justifyContent: 'center',
         alignItems: 'center',
         paddingVertical: spacing.xl,
@@ -321,7 +358,7 @@ const styles = StyleSheet.create({
     },
     sectionContainer: {
         marginBottom: spacing.lg,
-        backgroundColor: colors.background,
+        backgroundColor: colors.background, // Changed from white for theme consistency
         borderRadius: borderRadius.lg,
         padding: spacing.md,
         borderWidth: 1,
@@ -342,37 +379,42 @@ const styles = StyleSheet.create({
         borderBottomColor: colors.border,
     },
     infoCard: {
-        // No specific styles needed
+        // No specific styles needed if InfoRow handles its layout
     },
     infoRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        alignItems: 'flex-start',
+        alignItems: 'flex-start', // Changed for better alignment with potentially long values
         paddingVertical: spacing.sm,
         borderBottomWidth: 1,
-        borderBottomColor: colors.border,
+        borderBottomColor: colors.textLight, // Using a lighter border or remove if too much
     },
     infoLabel: {
         fontSize: fontSizes.body,
         color: colors.text,
         fontWeight: '500',
         marginRight: spacing.sm,
-        flex: 1,
+        flex: 1, // Give label a flex proportion
     },
     infoValue: {
         fontSize: fontSizes.body,
         color: colors.textLight,
         textAlign: 'right',
-        flex: 2,
+        flex: 2, // Give value more space
     },
-    errorText: {
+    errorText: { // General error text
         color: colors.error,
         textAlign: 'center',
         marginVertical: spacing.md,
         padding: spacing.md,
-        backgroundColor: '#ffebee',
+        backgroundColor: '#ffebee', // Light red background for errors
         borderRadius: borderRadius.sm,
         fontSize: fontSizes.body,
+    },
+    specificErrorText: { // For non-blocking errors like readingsError
+        backgroundColor: 'transparent', // No heavy background
+        padding: spacing.sm, // Less padding
+        color: colors.error,
     },
     infoText: {
         color: colors.textLight,

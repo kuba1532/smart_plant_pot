@@ -34,7 +34,7 @@ export const UserDataProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { isSignedIn, userId } = useAuth();
-  const api = useApi();
+  const api = useApi(); // Assuming useApi is memoized as per previous fix
 
   const [devicesData, setDevicesData] = useState<Device[] | null>(null);
   const [isDevicesLoading, setIsDevicesLoading] = useState(false);
@@ -42,6 +42,7 @@ export const UserDataProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const isFetchingUserRef = useRef(false);
   const isFetchingDevicesRef = useRef(false);
+  const lastFetchedOwnerIdForDevicesRef = useRef<string | number | null>(null); // Added Ref
 
   const clearUserData = useCallback(() => {
     setUserData(null);
@@ -54,124 +55,87 @@ export const UserDataProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     setDevicesData(null);
     setDevicesError(null);
     setIsDevicesLoading(false);
+    lastFetchedOwnerIdForDevicesRef.current = null; // Reset on clear
     console.log('UserDataContext: Devices data cleared.');
   }, []);
 
   const fetchUserData = useCallback(async () => {
-    // Guard against fetching if not signed in, though useEffect primarily handles this.
-    if (!isSignedIn || !userId) {
-      console.log('UserDataContext: fetchUserData skipped (not signed in or no userId).');
-      return;
-    }
-    if (isFetchingUserRef.current) {
-      console.log('UserDataContext: Fetch user data already in progress, skipping.');
-      return;
-    }
-
+    if (!isSignedIn || !userId || isFetchingUserRef.current) return;
     console.log('UserDataContext: Attempting to fetch user data...');
     isFetchingUserRef.current = true;
     setIsLoading(true);
     setError(null);
     try {
       const data = await api.getUserData();
-      console.log('UserDataContext: User data fetched successfully:', JSON.stringify(data));
       setUserData(data);
     } catch (e) {
-      console.error('UserDataContext: Error fetching user data:', e);
       const errorMessage = e instanceof Error ? e.message : 'Unknown error occurred';
       setError(`Failed to load user data: ${errorMessage}`);
-      setUserData(null); // Clear data on error
+      setUserData(null);
     } finally {
       setIsLoading(false);
       isFetchingUserRef.current = false;
     }
-    // Dependencies: `api` for the call. `isSignedIn` and `userId` to ensure the function has the latest context if called directly.
-    // State setters (setUserData, setIsLoading, setError) are stable and don't need to be dependencies.
-    // REMOVED: userData, devicesData, clearUserData, clearDevicesData from here to break the loop.
   }, [api, isSignedIn, userId]);
 
   const fetchUserDevices = useCallback(async (ownerId: string | number) => {
-    if (!isSignedIn) {
-      console.log('UserDataContext: fetchUserDevices skipped (not signed in).');
-      return;
-    }
-    if (isFetchingDevicesRef.current) {
-      console.log('UserDataContext: Devices fetch already in progress, skipping.');
-      return;
-    }
+    if (!isSignedIn || isFetchingDevicesRef.current) return;
     console.log(`UserDataContext: Attempting to fetch devices for owner ID: ${ownerId}...`);
     isFetchingDevicesRef.current = true;
     setIsDevicesLoading(true);
     setDevicesError(null);
-
     try {
       const data = await api.getUserDevices(ownerId);
-      console.log('UserDataContext: Devices data fetched successfully:', JSON.stringify(data));
       setDevicesData(data);
+      lastFetchedOwnerIdForDevicesRef.current = ownerId; // Mark as fetched for this ownerId
     } catch (e) {
-      console.error('UserDataContext: Error fetching devices data:', e);
       const errorMessage = e instanceof Error ? e.message : 'Unknown error occurred';
       setDevicesError(`Failed to load devices: ${errorMessage}`);
       setDevicesData(null);
+      // Potentially reset lastFetchedOwnerIdForDevicesRef.current if fetch fails and you want to retry on next userData change?
+      // For now, let's assume a failed fetch means we don't want to immediately retry without user action or state change.
     } finally {
       setIsDevicesLoading(false);
       isFetchingDevicesRef.current = false;
     }
-    // Dependencies: `api` for the call, `isSignedIn` for the guard.
-    // REMOVED: devicesData, clearDevicesData
   }, [api, isSignedIn]);
 
-  // Effect to fetch data when auth state changes
+  // Effect to fetch user data when auth state changes
   useEffect(() => {
-    console.log(`UserDataContext: Auth Effect Triggered. isSignedIn: ${isSignedIn}, userId: ${userId}, userData clerk_id: ${userData ? userData.clerk_id : 'null'}`);
     if (isSignedIn && userId) {
-      // Fetch if no user data OR if the clerk_id of existing user data doesn't match current userId
       if (!userData || (userData && userData.clerk_id !== userId)) {
-        console.log('UserDataContext: Auth Effect: Conditions met to fetch user data.');
         fetchUserData();
-      } else {
-        console.log('UserDataContext: Auth Effect: User data is current for this user.');
       }
     } else {
-      // User is signed out or userId not yet available
-      if (userData !== null) {
-        console.log('UserDataContext: Auth Effect: Signed out or no userId, clearing user data.');
-        clearUserData();
-      }
-      if (devicesData !== null) { // Also clear devices data if user signs out
-        console.log('UserDataContext: Auth Effect: Signed out or no userId, clearing devices data.');
-        clearDevicesData();
-      }
+      if (userData !== null) clearUserData();
+      if (devicesData !== null) clearDevicesData(); // This will also reset lastFetchedOwnerIdForDevicesRef
     }
-    // `userData` is in dependency array: if `fetchUserData` sets it, this effect re-runs.
-    // The internal condition `!userData || (userData.clerk_id !== userId)` prevents infinite refetching.
-    // `fetchUserData`, `clearUserData`, `clearDevicesData` are stable callbacks now due to corrected dependencies.
-  }, [isSignedIn, userId, userData, fetchUserData, clearUserData, clearDevicesData, devicesData]);
+  }, [isSignedIn, userId, userData, fetchUserData, clearUserData, devicesData, clearDevicesData]);
+
 
   // Effect to fetch devices data when userData.id becomes available or changes
   useEffect(() => {
-    console.log(`UserDataContext: Devices Effect Triggered. isSignedIn: ${isSignedIn}, userData.id: ${userData ? userData.id : 'null'}, devicesData exists: ${!!devicesData}`);
+    console.log(`UserDataContext: Devices Effect Triggered. isSignedIn: ${isSignedIn}, userData.id: ${userData?.id}, lastFetchedOwnerId: ${lastFetchedOwnerIdForDevicesRef.current}`);
     if (isSignedIn && userData && userData.id) {
-      // Fetch devices if they haven't been fetched yet for this user,
-      // or if the owner_id in the current devicesData doesn't match userData.id (user changed),
-      // or if devicesData is currently an empty array (user might have added their first device).
-      if (devicesData === null ||
-          (Array.isArray(devicesData) && devicesData.length === 0 && (!devicesData[0] || devicesData[0].owner_id !== userData.id)) || // fetch if empty array AND not already for this user
-          (Array.isArray(devicesData) && devicesData.length > 0 && devicesData[0].owner_id !== userData.id)
-      ) {
-        console.log(`UserDataContext: Devices Effect: User data available (owner_id: ${userData.id}), fetching/refreshing devices.`);
+      // Fetch devices if the current userData.id is different from the one we last fetched devices for.
+      if (lastFetchedOwnerIdForDevicesRef.current !== userData.id) {
+        console.log(`UserDataContext: Devices Effect: Owner ID changed to ${userData.id} or first fetch. Fetching devices.`);
         fetchUserDevices(userData.id);
-      } else if (devicesData && devicesData.length > 0 && devicesData[0].owner_id === userData.id) {
-        console.log(`UserDataContext: Devices Effect: Devices data already loaded for owner_id: ${userData.id}`);
       } else {
-        console.log(`UserDataContext: Devices Effect: Conditions not met or devices already loaded for ownerId: ${userData.id}.`);
+        console.log(`UserDataContext: Devices Effect: Devices already processed for ownerId: ${userData.id}`);
       }
-    } else if (!isSignedIn && devicesData !== null) {
-      // If signed out and devices data exists, clear it.
-      console.log('UserDataContext: Devices Effect: Signed out, clearing devices data.');
-      clearDevicesData();
+    } else if (!isSignedIn) {
+      // If signed out, ensure devices data and tracking ref are cleared (clearDevicesData handles this)
+      // This case is mostly handled by clearDevicesData in the Auth effect, but defensive check here is fine.
+      if (devicesData !== null || lastFetchedOwnerIdForDevicesRef.current !== null) {
+        console.log('UserDataContext: Devices Effect: Signed out, ensuring devices data and ref are cleared.');
+        clearDevicesData(); // This will set devicesData to null and lastFetchedOwnerIdForDevicesRef to null
+      }
     }
-  }, [isSignedIn, userData, devicesData, fetchUserDevices, clearDevicesData]);
+    // This effect now primarily reacts to changes in `isSignedIn` and `userData` (specifically `userData.id`).
+    // `fetchUserDevices` and `clearDevicesData` are stable callbacks.
+    // `devicesData` is NOT a dependency here, so `setDevicesData` won't re-trigger this effect directly.
+  }, [isSignedIn, userData, fetchUserDevices, clearDevicesData]); // Removed devicesData
 
   return (
       <UserDataContext.Provider value={{ userData, isLoading, error, fetchUserData, clearUserData, devicesData, isDevicesLoading, devicesError, fetchUserDevices, clearDevicesData }}>

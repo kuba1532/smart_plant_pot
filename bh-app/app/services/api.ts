@@ -1,17 +1,15 @@
 // app/services/api.ts
 import { useAuth } from '@clerk/clerk-expo';
+import { useCallback, useMemo } from 'react'; // Import useCallback and useMemo
 
-// Base API configuration
-const API_BASE_URL = 'https://user-server-bh-168223699989.us-central1.run.app'; // Replace with your actual API URL
+const API_BASE_URL = 'https://user-server-bh-168223699989.us-central1.run.app';
 
-// Custom hook for making authenticated API requests
 export const useApi = () => {
   const { getToken } = useAuth();
 
-  // Generic fetch function that adds authentication
-  const authFetch = async (endpoint: string, options: RequestInit = {}) => {
+  const authFetch = useCallback(async (endpoint: string, options: RequestInit = {}) => {
     try {
-      const token = await getToken();
+      const token = await getToken(); // getToken from useAuth is generally stable
       if (!token) {
         throw new Error('Not authenticated');
       }
@@ -35,48 +33,34 @@ export const useApi = () => {
         console.error('API error response:', errorData);
         throw new Error(errorData.message || `API error: ${response.status}`);
       }
-      const data = await response.json();
-      return data;
+      // Check if response is empty before trying to parse JSON
+      const text = await response.text();
+      return text ? JSON.parse(text) : {}; // Return empty object or handle as appropriate if empty response is valid
     } catch (error) {
       console.error('Error in authFetch:', error);
       throw error;
     }
-  };
+  }, [getToken]); // getToken is the primary dependency here
 
-  // Specific API methods
-  const getUserData = async () => {
-    try {
-      return await authFetch('/users/me');
-    } catch (error) {
-      console.error('Error in getUserData:', error);
-      throw error;
-    }
-  };
+  const getUserData = useCallback(async () => {
+    return authFetch('/users/me');
+  }, [authFetch]);
 
-  const getUserDevices = async (ownerId: string | number) => {
-    try {
-      return await authFetch(`/devices/user/${ownerId}`);
-    } catch (error) {
-      console.error(`Error in getUserDevices for owner ${ownerId}:`, error);
-      throw error;
-    }
-  };
+  const getUserDevices = useCallback(async (ownerId: string | number) => {
+    return authFetch(`/devices/user/${ownerId}`);
+  }, [authFetch]);
 
-  const getDeviceReadings = async (deviceId: string | number, limit: number = 120) => {
-    try {
-      return await authFetch(`/devices/${deviceId}/readings/latest?limit=${limit}`);
-    } catch (error) {
-      console.error(`Error in getDeviceReadings for device ${deviceId}:`, error);
-      throw error;
-    }
-  };
+  const getDeviceReadings = useCallback(async (deviceId: string | number, limit: number = 120) => {
+    return authFetch(`/devices/${deviceId}/readings/latest?limit=${limit}`);
+  }, [authFetch]);
 
-  return {
+  // Memoize the returned object so its reference is stable
+  // as long as its constituent functions are stable.
+  return useMemo(() => ({
     getUserData,
     getUserDevices,
     getDeviceReadings,
-    // getDeviceDetails removed
-  };
+  }), [getUserData, getUserDevices, getDeviceReadings]);
 };
 
 export default useApi;
