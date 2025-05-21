@@ -7,37 +7,23 @@ const API_BASE_URL = 'https://user-server-bh-168223699989.us-central1.run.app'; 
 // Custom hook for making authenticated API requests
 export const useApi = () => {
   const { getToken } = useAuth();
-  
+
   // Generic fetch function that adds authentication
   const authFetch = async (endpoint: string, options: RequestInit = {}) => {
     try {
-      // Get the JWT token from Clerk
       const token = await getToken();
-      
-      console.log('Auth token available:', !!token); // Log token availability
-      
       if (!token) {
         throw new Error('Not authenticated');
       }
-      
-      // Add authorization header with the token
       const headers = {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`,
         ...options.headers,
       };
-      
-      console.log(`Making request to ${API_BASE_URL}${endpoint}`);
-      
-      // Make the request
       const response = await fetch(`${API_BASE_URL}${endpoint}`, {
         ...options,
         headers,
       });
-      
-      console.log('Response status:', response.status);
-      
-      // Check if the request was successful
       if (!response.ok) {
         const errorText = await response.text();
         let errorData;
@@ -49,28 +35,47 @@ export const useApi = () => {
         console.error('API error response:', errorData);
         throw new Error(errorData.message || `API error: ${response.status}`);
       }
-      
       const data = await response.json();
-      console.log('API response data:', data);
       return data;
     } catch (error) {
       console.error('Error in authFetch:', error);
       throw error;
     }
   };
-  
+
   // Specific API methods
   const getUserData = async () => {
     try {
-      return await authFetch('/protected');
+      return await authFetch('/users/me');
     } catch (error) {
       console.error('Error in getUserData:', error);
       throw error;
     }
   };
-  
+
+  const getUserDevices = async (ownerId: string | number) => {
+    try {
+      return await authFetch(`/devices/user/${ownerId}`);
+    } catch (error) {
+      console.error(`Error in getUserDevices for owner ${ownerId}:`, error);
+      throw error;
+    }
+  };
+
+  const getDeviceReadings = async (deviceId: string | number, limit: number = 120) => {
+    try {
+      return await authFetch(`/devices/${deviceId}/readings/latest?limit=${limit}`);
+    } catch (error) {
+      console.error(`Error in getDeviceReadings for device ${deviceId}:`, error);
+      throw error;
+    }
+  };
+
   return {
     getUserData,
+    getUserDevices,
+    getDeviceReadings,
+    // getDeviceDetails removed
   };
 };
 

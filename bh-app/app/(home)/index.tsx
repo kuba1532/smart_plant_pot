@@ -1,97 +1,74 @@
 // app/(home)/index.tsx
 import { SignedIn, SignedOut, useUser } from '@clerk/clerk-expo'
-import { Text, View, StyleSheet } from 'react-native'
+import { Text, View, StyleSheet, Platform } from 'react-native' // Added Platform
 import { SignOutButton } from '@/app/components/SignOutButton'
 import { Container } from '@/app/components/Container'
 import { Button } from '@/app/components/Button'
 import { Link } from 'expo-router'
 import { colors, spacing } from '@/app/styles/theme'
-import { UserData } from '@/app/components/UserData' // Import the new component
+import { UserDevices } from '@/app/components/UserDevices'; // Import the new component
 
 export default function Page() {
   const { user } = useUser()
 
   return (
-    <Container style={styles.container}>
-      <SignedIn>
-        <View style={styles.welcomeContainer}>
-          <Text style={styles.welcomeText}>Welcome Back</Text>
-          <Text style={styles.emailText}>{user?.emailAddresses[0].emailAddress}</Text>
-          
-          <View style={styles.cardContainer}>
-            <View style={styles.card}>
-              <Text style={styles.cardTitle}>Quick Start</Text>
-              <Text style={styles.cardText}>
-                This is your home screen. You're now signed in with Clerk authentication.
-              </Text>
+      <Container style={styles.container}>
+        <SignedIn>
+          <View style={styles.welcomeContainer}>
+            <Text style={styles.welcomeText}>Welcome Back</Text>
+            <Text style={styles.emailText}>{user?.emailAddresses[0].emailAddress}</Text>
+
+            <UserDevices />
+
+            <View style={styles.buttonContainer}>
+              <SignOutButton />
             </View>
           </View>
-          
-          {/* Add the UserData component here */}
-          <UserData />
-          
-          <View style={styles.buttonContainer}>
-            <SignOutButton />
+        </SignedIn>
+
+        <SignedOut>
+          <View style={styles.signedOutContainer}>
+            <Text style={styles.signedOutTitle}>
+              You need to sign in to view this page
+            </Text>
+
+            <View style={styles.buttonGroup}>
+              <Link href="/(auth)/sign-in" asChild>
+                <Button title="Sign In" variant="primary" />
+              </Link>
+
+              <Link href="/(auth)/sign-up" asChild>
+                <Button title="Create Account" variant="secondary" />
+              </Link>
+            </View>
           </View>
-        </View>
-      </SignedIn>
-      
-      <SignedOut>
-        <View style={styles.signedOutContainer}>
-          <Text style={styles.signedOutTitle}>
-            You need to sign in to view this page
-          </Text>
-          
-          <View style={styles.buttonGroup}>
-            <Link href="/(auth)/sign-in" asChild>
-              <Button title="Sign In" variant="primary" />
-            </Link>
-            
-            <Link href="/(auth)/sign-up" asChild>
-              <Button title="Create Account" variant="secondary" />
-            </Link>
-          </View>
-        </View>
-      </SignedOut>
-    </Container>
+        </SignedOut>
+      </Container>
   )
 }
 
 const styles = StyleSheet.create({
   container: {
-    justifyContent: 'center',
+    // justifyContent: 'center', // Remove if UserDevices is scrollable and needs top alignment
     alignItems: 'center',
+    paddingTop: Platform.OS === 'android' ? spacing.lg : 0, // Adjust for status bar on Android if needed
   },
   welcomeContainer: {
     width: '100%',
     alignItems: 'center',
+    flex: 1, // Allow this container to take up space for scrolling UserDevices
   },
   welcomeText: {
     fontSize: 24,
     fontWeight: 'bold',
     color: colors.text,
     marginBottom: spacing.xs,
+    marginTop: spacing.md, // Add some top margin
   },
   emailText: {
     fontSize: 16,
     color: colors.textLight,
-    marginBottom: spacing.xl,
-  },
-  cardContainer: {
-    width: '100%',
-    marginBottom: spacing.xl,
-  },
-  card: {
-    backgroundColor: colors.background,
-    borderRadius: 12,
-    padding: spacing.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    marginBottom: spacing.md, // Reduced margin as UserDevices will take space
   },
   cardTitle: {
     fontSize: 18,
@@ -105,9 +82,13 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   buttonContainer: {
-    marginTop: spacing.lg,
+    marginTop: 'auto', // Push sign out button to bottom if welcomeContainer is flex:1
+    paddingBottom: spacing.lg, // Ensure some padding at the bottom
+    width: '90%', // Match width of other content
+    alignSelf: 'center'
   },
   signedOutContainer: {
+    flex: 1, // Ensure it centers vertically
     alignItems: 'center',
     justifyContent: 'center',
   },

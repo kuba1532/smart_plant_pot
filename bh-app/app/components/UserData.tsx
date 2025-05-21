@@ -1,63 +1,25 @@
-// Fixed UserData component
-import React, { useCallback, useEffect, useState, useRef } from 'react';
+// app/components/UserData.tsx
+import React, { useCallback, useState } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, RefreshControl, ScrollView, Platform } from 'react-native';
-import { useApi } from '../services/api';
+import { useUserDataContext } from '../context/UserDataContext'; // Import the context hook
 import { colors, spacing } from '../styles/theme';
 import { Button } from './Button';
 
+// For debug message, if you need the base URL
+const API_BASE_URL_DEBUG = 'https://user-server-bh-168223699989.us-central1.run.app';
+
 export const UserData = () => {
-  const [data, setData] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const { userData, isLoading, error, fetchUserData } = useUserDataContext();
   const [refreshing, setRefreshing] = useState(false);
-  const api = useApi();
 
-  // Add a request in progress ref to prevent duplicate requests
-  const requestInProgress = useRef(false);
-
-  const fetchData = useCallback(async () => {
-    // Skip if a request is already in progress
-    if (requestInProgress.current) {
-      console.log('Request already in progress, skipping...');
-      return;
-    }
-
-    try {
-      requestInProgress.current = true;
-      setLoading(true);
-      setError('');
-      console.log('Starting to fetch user data...');
-      const userData = await api.getUserData();
-      console.log('User data fetched successfully:', userData);
-      setData(userData);
-    } catch (err) {
-      console.error('Error fetching user data:', err);
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
-      setError(`Failed to load data: ${errorMessage}`);
-    } finally {
-      setLoading(false);
-      requestInProgress.current = false;
-    }
-  }, [api]);
-
-  const handleRefresh = async () => {
+  const handleRefresh = useCallback(async () => {
     setRefreshing(true);
-    await fetchData();
+    await fetchUserData(); // Call context's fetch function
     setRefreshing(false);
-  };
+  }, [fetchUserData]);
 
-  // Use an effect with empty dependency array to only run once
-  useEffect(() => {
-    console.log('UserData component mounted');
-    fetchData();
-
-    // Clean up function
-    return () => {
-      console.log('UserData component unmounted');
-    };
-  }, []); // Include fetchData in dependency array
-
-  if (loading && !refreshing) {
+  // Initial loading state (when context is loading and component doesn't have data yet)
+  if (isLoading && !refreshing && !userData) {
     return (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
@@ -73,59 +35,70 @@ export const UserData = () => {
             <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
           }
       >
-        {error ? (
+        {error && !userData ? ( // Show error if context has an error and no data is available
             <View style={styles.errorContainer}>
               <Text style={styles.errorText}>{error}</Text>
               <Text style={styles.errorHint}>
-                Check if your API server is running and accessible
+                Check if your API server is running and accessible.
               </Text>
-              <Button title="Try Again" onPress={fetchData} variant="primary" />
+              <Button title="Try Again" onPress={fetchUserData} variant="primary" />
             </View>
-        ) : (
+        ) : userData ? ( // If data is available from context
             <View style={styles.dataContainer}>
-              <Text style={styles.dataTitle}>Your Protected Data</Text>
+              <Text style={styles.dataTitle}>Your User Details (from Context)</Text>
 
-              {data ? (
-                  <View style={styles.dataContent}>
-                    {/* Display the message or any properties in the data */}
-                    {data.message ? (
-                        <View style={styles.dataRow}>
-                          <Text style={styles.dataLabel}>Message:</Text>
-                          <Text style={styles.dataValue}>{data.message}</Text>
-                        </View>
-                    ) : Object.entries(data).length > 0 ? (
-                        Object.entries(data).map(([key, value]) => (
-                            <View key={key} style={styles.dataRow}>
-                              <Text style={styles.dataLabel}>{key}:</Text>
-                              <Text style={styles.dataValue}>
-                                {typeof value === 'object' ? JSON.stringify(value) : String(value)}
-                              </Text>
-                            </View>
-                        ))
-                    ) : (
-                        <Text style={styles.noDataText}>Response received but no properties found</Text>
-                    )}
-                  </View>
-              ) : (
-                  <View style={styles.noDataContainer}>
-                    <Text style={styles.noDataText}>No data available</Text>
-                    <Text style={styles.noDataHint}>
-                      Response was successful but no data was returned.
-                      Check your API endpoint and authentication.
-                    </Text>
-
-                    <View style={styles.debugContainer}>
-                      <Text style={styles.debugTitle}>Debug Information</Text>
-                      <Text style={styles.debugText}>
-                        - API URL: https://user-server-bh-168223699989.us-central1.run.app/protected{'\n'}
-                        - Platform: {Platform.OS} {Platform.Version}{'\n'}
-                        - Data received: {data === null ? 'null' : data === undefined ? 'undefined' : 'empty object'}
-                      </Text>
-                    </View>
+              {/* Display fields based on /users/me response structure */}
+              {userData.id !== undefined && (
+                <View style={styles.dataRow}>
+                  <Text style={styles.dataLabel}>Internal ID:</Text>
+                  <Text style={styles.dataValue}>{userData.id}</Text>
+                </View>
+              )}
+              {!!userData.clerk_id && ( // or userData.clerk_id ? (...) : null
+                  <View style={styles.dataRow}>
+                    <Text style={styles.dataLabel}>Clerk User ID:</Text>
+                    <Text style={styles.dataValue}>{userData.clerk_id}</Text>
                   </View>
               )}
+              {!!userData.created_at && (
+                <View style={styles.dataRow}>
+                  <Text style={styles.dataLabel}>Account Created:</Text>
+                  <Text style={styles.dataValue}>{new Date(userData.created_at).toLocaleString()}</Text>
+                </View>
+              )}
+
+              {/* Fallback for unexpected data structure or if main fields are missing */}
+              {Object.keys(userData).length > 0 && !userData.id && !userData.clerk_id && !userData.created_at &&
+                Object.entries(userData).map(([key, value]) => (
+                  <View key={key} style={styles.dataRow}>
+                    <Text style={styles.dataLabel}>{key}:</Text>
+                    <Text style={styles.dataValue}>
+                      {typeof value === 'object' ? JSON.stringify(value) : String(value)}
+                    </Text>
+                  </View>
+              ))}
+
+              {/* If userData is an empty object */}
+              {Object.keys(userData).length === 0 && (
+                  <Text style={styles.noDataText}>Response received but user data is empty.</Text>
+              )}
             </View>
-        )}
+        ) : !isLoading ? ( // If not loading, no data, and no error (e.g., initial state or user signed out)
+            <View style={styles.noDataContainer}>
+              <Text style={styles.noDataText}>No user data available.</Text>
+              <Text style={styles.noDataHint}>
+                This may be because you are signed out or data is still loading.
+              </Text>
+              <View style={styles.debugContainer}>
+                <Text style={styles.debugTitle}>Debug Information</Text>
+                <Text style={styles.debugText}>
+                  - API Endpoint for User Data: {API_BASE_URL_DEBUG}/users/me{'\n'}
+                  - Platform: {Platform.OS} {Platform.Version}{'\n'}
+                  - Data from context: {userData === null ? 'null' : userData === undefined ? 'undefined' : 'empty object'}
+                </Text>
+              </View>
+            </View>
+        ) : null /* This case (isLoading is true but not caught by the first if) should be minimal */}
       </ScrollView>
   );
 };
@@ -172,27 +145,22 @@ const styles = StyleSheet.create({
     color: colors.text,
     marginBottom: spacing.md,
   },
-  dataContent: {
-    backgroundColor: colors.background,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: spacing.md,
-  },
   dataRow: {
     flexDirection: 'row',
+    justifyContent: 'space-between', // Adjusted for better layout
     paddingVertical: spacing.sm,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
   dataLabel: {
-    flex: 1,
     fontWeight: '500',
     color: colors.text,
+    marginRight: spacing.sm, // Added margin
   },
   dataValue: {
-    flex: 2,
+    flex: 1, // Allow value to take remaining space
     color: colors.textLight,
+    textAlign: 'right', // Align value to the right
   },
   noDataContainer: {
     alignItems: 'center',
@@ -232,4 +200,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default UserData; // Add default export
+export default UserData;
