@@ -5,7 +5,7 @@ from typing import List, Dict, Any
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, Body
 from fastapi.responses import JSONResponse
 
-from app.auth import get_current_user
+from app.auth.dependencies import get_current_user
 from app.auth.device_auth import authorize_device
 from app.auth.role_auth import authorize_role
 from app.models.device import DeviceCreate, DeviceResponse, DeviceUpdate, DeviceDeregisterResponse

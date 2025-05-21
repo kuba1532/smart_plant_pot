@@ -28,8 +28,8 @@ app.include_router(device_reading.router, prefix="/devices", tags=["Device Readi
 app.include_router(device.router, prefix="/devices", tags=["Devices"])
 app.include_router(user.router, prefix="/users", tags=["Users"]) # Added user router
 
-Base.metadata.drop_all(bind=engine)
-Base.metadata.create_all(bind=engine)
+# Base.metadata.drop_all(bind=engine)
+# Base.metadata.create_all(bind=engine)
 
 # If you need to create a test user at startup (not recommended for production):
 @app.on_event("startup")

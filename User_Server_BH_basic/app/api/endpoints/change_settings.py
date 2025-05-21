@@ -1,6 +1,6 @@
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException
-from app.auth import get_current_user
+from app.auth.dependencies import get_current_user
 from app.auth.device_auth import authorize_device
 from app.models.change_settings import ChangeSettingsCreate, ChangeSettingsOutput
 from app.services.device_webhook_service import send_settings_to_device_server

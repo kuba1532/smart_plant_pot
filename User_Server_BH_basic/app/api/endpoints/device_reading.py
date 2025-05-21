@@ -6,7 +6,7 @@ from typing import List
 from fastapi import APIRouter, Request, Depends, HTTPException, status, Header
 from fastapi.param_functions import Path, Query, Body
 
-from app.auth import get_current_user
+from app.auth.dependencies import get_current_user
 from app.auth.device_auth import authorize_device
 from app.auth.role_auth import authorize_role
 from app.models.device_reading import ReadingResponse, ReadingCreate, StatsResponse, ReadingOperationResponse

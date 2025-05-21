@@ -5,7 +5,7 @@ from typing import List, Dict, Any # Dict, Any might not be needed if using Pyda
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, Body
 # from fastapi.responses import JSONResponse # Not needed if Pydantic handles response
 
-from app.auth import get_current_user
+from app.auth.dependencies import get_current_user
 # from app.auth.device_auth import authorize_device # Not used here
 # from app.auth.role_auth import authorize_role # Not used here
 # from app.models.device import DeviceCreate, DeviceResponse, DeviceUpdate # Not device models
