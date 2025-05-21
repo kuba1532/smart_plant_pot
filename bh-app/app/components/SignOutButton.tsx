@@ -17,3 +17,5 @@ export const SignOutButton = () => {
 
   return <Button title="Sign out" onPress={handleSignOut} variant="secondary" />
 }
+
+export default SignOutButton;

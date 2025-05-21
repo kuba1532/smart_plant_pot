@@ -21,7 +21,7 @@ class Device(Base):
     __tablename__ = "devices"
 
     id = Column(Integer, primary_key=True, index=True)
-    device_id = Column(String, unique=True, index=True)
+    unique_key = Column(String, unique=True, index=True)
     name = Column(String)
     # Change the type column to a foreign key
     type_code = Column(String, ForeignKey("device_types.type_code"))

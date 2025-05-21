@@ -1,15 +1,17 @@
 # app/services/user_service.py
+# app/services/user_service.py
 from fastapi import Depends, HTTPException
 from typing import Dict, Any, Optional
 import logging
 
 from app.db.crud.users import (
     create_user,
-    get_user_by_clerk_id,
+    get_user_by_clerk_id as crud_get_user_by_clerk_id,  # Renamed for clarity
     delete_user,
     DatabaseError
 )
 from app.db.errors import UserAlreadyExistsError, UserNotFoundError
+from app.db.models import User as DBUser  # For type hinting
 
 # Configure logger
 logger = logging.getLogger(__name__)
@@ -18,7 +20,8 @@ logger = logging.getLogger(__name__)
 class UserService:
     """Service for managing users from Clerk webhooks"""
 
-    async def handle_user_created(self, data: Dict[str, Any]) -> Dict[str, Any]:
+    async def handle_user_created(self, data: Dict[str, Any]) -> Dict[
+        str, Any]:  # Returns dict matching WebhookUserResponse
         """
         Handle the user.created event from Clerk
 
@@ -28,45 +31,38 @@ class UserService:
         Returns:
             Response indicating the status of the operation
         """
-        # Extract user information
         clerk_id = data.get("id")
         if not clerk_id:
             logger.error("Missing user ID in Clerk webhook data")
             raise HTTPException(status_code=400, detail="Missing user ID in webhook data")
 
-        # Extract additional user data for logging/future use
-        email = data.get("email_addresses", [{}])[0].get("email_address") if data.get("email_addresses") else None
-        first_name = data.get("first_name", "")
-        last_name = data.get("last_name", "")
-
         try:
-            # Create or get existing user
-            user = create_user(clerk_id)
+            user = create_user(clerk_id)  # This CRUD now returns existing user if found
 
-            # Log the successful operation
-            logger.info(f"User processed: id={user.id}, clerk_id={clerk_id}, email={email}")
+            logger.info(f"User processed (created or existing): id={user.id}, clerk_id={clerk_id}")
 
-            # You could store additional user data here if needed
-            # user.email = email
-            # user.first_name = first_name
-            # update_user(user)
+            message = "User already exists and was retrieved" if user.clerk_id == clerk_id and user.id else "User created successfully"
+            # A more robust check for "already exists" might involve comparing created_at or a version.
+            # create_user in CRUD is idempotent now.
 
-            # Return success
             return {
                 "status": "success",
-                "message": "User created successfully",
+                "message": message,
                 "user_id": clerk_id,
                 "internal_id": user.id
             }
 
-        except UserAlreadyExistsError:
-            # This might not be an error in your case since create_user returns existing user
-            logger.info(f"User already exists: clerk_id={clerk_id}")
-            return {
-                "status": "success",
-                "message": "User already exists",
-                "user_id": clerk_id
-            }
+        # UserAlreadyExistsError might not be raised if create_user is idempotent
+        # except UserAlreadyExistsError:
+        #     logger.info(f"User already exists: clerk_id={clerk_id}")
+        #     # Retrieve the existing user to get internal_id
+        #     existing_user = crud_get_user_by_clerk_id(clerk_id)
+        #     return {
+        #         "status": "success",
+        #         "message": "User already exists",
+        #         "user_id": clerk_id,
+        #         "internal_id": existing_user.id if existing_user else None
+        #     }
 
         except DatabaseError as e:
             logger.error(f"Database error processing user creation: {str(e)}")
@@ -75,7 +71,8 @@ class UserService:
                 detail="Failed to process user creation due to database error"
             )
 
-    async def handle_user_deleted(self, data: Dict[str, Any]) -> Dict[str, Any]:
+    async def handle_user_deleted(self, data: Dict[str, Any]) -> Dict[
+        str, Any]:  # Returns dict matching WebhookUserResponse
         """
         Handle the user.deleted event from Clerk
 
@@ -85,52 +82,47 @@ class UserService:
         Returns:
             Response indicating the status of the operation
         """
-        # Extract user ID
         clerk_id = data.get("id")
         if not clerk_id:
             logger.error("Missing user ID in Clerk webhook data")
             raise HTTPException(status_code=400, detail="Missing user ID in webhook data")
 
         try:
-            # Find the user by clerk_id
-            user = get_user_by_clerk_id(clerk_id)
+            user = crud_get_user_by_clerk_id(clerk_id)
 
             if not user:
                 logger.warning(f"User not found for deletion: clerk_id={clerk_id}")
+                # Return a specific part of WebhookUserResponse or a different model if needed
                 return {
                     "status": "warning",
                     "message": "User not found for deletion",
-                    "user_id": clerk_id
+                    "user_id": clerk_id,
+                    "internal_id": None
                 }
 
-            # Delete the user
+            internal_id_before_delete = user.id
             delete_result = delete_user(user.id)
 
             if delete_result:
-                logger.info(f"User deleted: clerk_id={clerk_id}, internal_id={user.id}")
+                logger.info(f"User deleted: clerk_id={clerk_id}, internal_id={internal_id_before_delete}")
                 return {
                     "status": "success",
                     "message": "User deletion handled successfully",
                     "user_id": clerk_id,
-                    "internal_id": user.id
+                    "internal_id": internal_id_before_delete
                 }
             else:
-                # This shouldn't happen if we already checked user exists
-                logger.warning(f"User deletion failed: clerk_id={clerk_id}")
+                # This path implies delete_user returned False without raising an error for a found user.
+                logger.warning(f"User deletion failed for an existing user: clerk_id={clerk_id}")
                 return {
-                    "status": "warning",
-                    "message": "User deletion failed",
-                    "user_id": clerk_id
+                    "status": "error",
+                    "message": "User deletion failed unexpectedly",
+                    "user_id": clerk_id,
+                    "internal_id": internal_id_before_delete
                 }
 
-        except UserNotFoundError:
-            # Handle case where user exists in Clerk but not in our system
-            logger.warning(f"User not found for deletion: clerk_id={clerk_id}")
-            return {
-                "status": "warning",
-                "message": "User not found for deletion",
-                "user_id": clerk_id
-            }
+        # UserNotFoundError is already handled by the check `if not user:` above.
+        # The CRUD `get_user_by_clerk_id` returns None, not UserNotFoundError exception.
 
         except DatabaseError as e:
             logger.error(f"Database error processing user deletion: {str(e)}")
@@ -139,7 +131,7 @@ class UserService:
                 detail="Failed to process user deletion due to database error"
             )
 
-    def get_user_by_clerk_id(self, clerk_id: str) -> Optional[Any]:
+    def get_user_by_clerk_id(self, clerk_id: str) -> Optional[DBUser]:
         """
         Get a user by their Clerk ID
 
@@ -147,10 +139,13 @@ class UserService:
             clerk_id: The Clerk user ID
 
         Returns:
-            The user if found, None otherwise
+            The DBUser object if found, None otherwise
         """
         try:
-            return get_user_by_clerk_id(clerk_id)
+            user = crud_get_user_by_clerk_id(clerk_id)
+            if not user:
+                raise HTTPException(status_code=404, detail=f"User with clerk_id {clerk_id} not found")
+            return user
         except DatabaseError as e:
             logger.error(f"Error retrieving user with clerk_id {clerk_id}: {str(e)}")
             raise HTTPException(

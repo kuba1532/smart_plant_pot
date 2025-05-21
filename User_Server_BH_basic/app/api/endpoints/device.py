@@ -1,3 +1,4 @@
+# app/api/endpoints/device.py
 # app/api/endpoints/devices.py
 from typing import List, Dict, Any
 
@@ -7,82 +8,95 @@ from fastapi.responses import JSONResponse
 from app.auth import get_current_user
 from app.auth.device_auth import authorize_device
 from app.auth.role_auth import authorize_role
-from app.models.device import DeviceCreate, DeviceResponse, DeviceUpdate
+from app.models.device import DeviceCreate, DeviceResponse, DeviceUpdate, DeviceDeregisterResponse
 from app.services.device_service import DeviceService
-from app.services.user_service import UserService
+# from app.services.user_service import UserService # No longer directly used here for user ops
 from app.utils.device_authentication import validate_device_id
 
-# Create router
 router = APIRouter()
 
 
-# Device endpoints
-@router.post("", response_model=Dict[str, Any], status_code=201)
-async def register_device(
-        device: DeviceCreate = Body(...),
-        owner_id: int = Query(..., description="The ID of the device owner"),
+@router.post("", response_model=DeviceResponse, status_code=201)
+async def register_device_endpoint( # Renamed
+        device_input: DeviceCreate = Body(...), # Use the corrected DeviceCreate model
+        owner_id: int = Query(..., description="The ID of the device owner (internal DB user ID)"),
         service: DeviceService = Depends(),
-        user=Depends(get_current_user)
+        user=Depends(get_current_user) # Assuming admin or specific logic for owner_id check
 ):
-    """Register a new device or retrieve existing device"""
-    if not validate_device_id(device.device_id, device.type):
+    # authorize_role(user, "admin") # Or some other logic to ensure 'owner_id' is valid/permitted
+    # The unique_key is now part of DeviceCreate model
+    if not validate_device_id(device_input.unique_key, device_input.type_code): # Pass type_code
         raise HTTPException(
-            status_code=403,
-            detail=f"Invalid device_id or type"
+            status_code=400, # Changed from 403 as it's a validation error
+            detail=f"Invalid device unique_key or type_code format/combination."
         )
+    # Service's register_device now takes DeviceCreate model and returns DBDevice object
+    db_device = await service.register_device(device_input, owner_id)
+    return db_device # FastAPI will convert using DeviceResponse.Config.orm_mode
 
-    return await service.register_device(device.dict(), owner_id)
 
-
-@router.get("/{id}", response_model=Dict[str, Any])
-async def get_device(
-        id: int = Path(..., description="The ID of the device"),
+@router.get("/{device_db_id}", response_model=DeviceResponse) # Path param is db id
+async def get_device_endpoint( # Renamed
+        device_db_id: int = Path(..., description="The internal database ID of the device"),
         service: DeviceService = Depends(),
         user=Depends(get_current_user)
 ):
-    """Get details for a specific device"""
-    authorize_device(user, id)
-    return await service.get_device_details(id)
+    authorize_device(user, device_db_id)
+    # Service returns DBDevice object
+    db_device = await service.get_device_details(device_db_id)
+    if not db_device:
+        raise HTTPException(status_code=404, detail="Device not found")
+    return db_device
 
 
-@router.put("/{id}", response_model=Dict[str, Any])
-async def update_device(
-        id: int = Path(..., description="The ID of the device"),
-        device: DeviceUpdate = Body(...),
+@router.put("/{device_db_id}", response_model=DeviceResponse) # Path param is db id
+async def update_device_endpoint( # Renamed
+        device_db_id: int = Path(..., description="The internal database ID of the device"),
+        device_update_input: DeviceUpdate = Body(...), # Use corrected DeviceUpdate model
         service: DeviceService = Depends(),
         user=Depends(get_current_user)
 ):
-    """Update a device's information"""
-    authorize_device(user, id)
-    return await service.update_device_info(id, device.dict(exclude_unset=True))
+    authorize_device(user, device_db_id)
+    # Service takes DeviceUpdate model and returns DBDevice object
+    updated_db_device = await service.update_device_info(device_db_id, device_update_input)
+    return updated_db_device
 
 
-@router.delete("/{id}", response_model=Dict[str, Any])
-async def deregister_device(
-        id: int = Path(..., description="The ID of the device"),
-        service: DeviceService = Depends(),
-        user = Depends(get_current_user)
-
-):
-    """Deregister a device"""
-    authorize_device(user, id)
-    return await service.deregister_device(id)
-
-
-@router.get("/user/{owner_id}", response_model=List[Dict[str, Any]])
-async def get_user_devices(
-        owner_id: int = Path(..., description="The ID of the user"),
+@router.delete("/{device_db_id}", response_model=DeviceDeregisterResponse) # Path param is db id
+async def deregister_device_endpoint( # Renamed
+        device_db_id: int = Path(..., description="The internal database ID of the device"),
         service: DeviceService = Depends(),
         user = Depends(get_current_user)
 ):
-    """Get all devices belonging to a specific user"""
-    return await service.get_user_devices(owner_id)
+    authorize_device(user, device_db_id)
+    # Service returns a dict matching DeviceDeregisterResponse
+    return await service.deregister_device(device_db_id)
 
-@router.get("/", response_model=List[Dict[str, Any]])
-async def get_all_devices(
+
+@router.get("/user/{owner_user_id}", response_model=List[DeviceResponse]) # Path param is user's db id
+async def get_user_devices_endpoint( # Renamed
+        owner_user_id: int = Path(..., description="The internal database ID of the user"),
+        service: DeviceService = Depends(),
+        user = Depends(get_current_user) # Authorization: user must be admin or the owner_user_id themselves
+):
+    # Add authorization: either admin or the user themself
+    # Example: if user['sub'] (clerk_id) maps to owner_user_id or user is admin
+    # For simplicity, assuming admin or direct match for now.
+    # A more robust check would involve fetching user by clerk_id, then comparing their DB id.
+    # authorize_role(user, "admin") # OR check if user matches owner_user_id
+    # For now, relying on service layer or assuming this endpoint is for admins/specific scenarios.
+
+    # Service returns List[DBDevice]
+    user_devices = await service.get_user_devices(owner_user_id)
+    return user_devices
+
+
+@router.get("", response_model=List[DeviceResponse]) # Root GET for all devices
+async def get_all_devices_endpoint( # Renamed
         service: DeviceService = Depends(),
         user = Depends(get_current_user)
 ):
-    """Get all devices belonging to a specific user"""
-    authorize_role(user, "admin")
-    return await service.get_all_devices()
+    authorize_role(user, "admin") # This was correct
+    # Service returns List[DBDevice]
+    all_devices = await service.get_all_devices()
+    return all_devices

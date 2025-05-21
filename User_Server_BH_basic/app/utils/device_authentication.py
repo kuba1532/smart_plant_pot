@@ -4,7 +4,7 @@ import string
 from app.db.crud.device_types import get_all_device_types
 
 
-def validate_code(code, device_type, valid_device_prefixes):
+def validate_code(unique_key, device_type, valid_device_prefixes):
     """
     Validates a 12-character code (2 device type chars + 9 characters + check character)
     Returns True if valid, False otherwise
@@ -15,10 +15,10 @@ def validate_code(code, device_type, valid_device_prefixes):
     """
     # Step 1: Validate basic format (12 alphanumeric characters)
     valid_chars = string.digits + string.ascii_lowercase + string.ascii_uppercase
-    if not isinstance(code, str) or len(code) != 12 or not all(c in valid_chars for c in code):
+    if not isinstance(unique_key, str) or len(unique_key) != 12 or not all(c in valid_chars for c in unique_key):
         return False
 
-    device_prefix = code[:2]
+    device_prefix = unique_key[:2]
     if device_prefix != device_type:
         return False
 
@@ -27,7 +27,7 @@ def validate_code(code, device_type, valid_device_prefixes):
         return False
 
     # Get the main code part (excluding device prefix)
-    main_code = code[2:]
+    main_code = unique_key[2:]
 
     # Convert code to list of characters
     chars = list(main_code)

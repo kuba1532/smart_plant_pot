@@ -1,4 +1,5 @@
 # app/services/device_service.py
+# app/services/device_service.py
 from fastapi import Depends, HTTPException
 from typing import Dict, Any, Optional, List
 import logging
@@ -9,11 +10,14 @@ from app.db.crud.devices import (
     delete_device,
     get_devices_by_owner_id,
     update_device,
+    get_all_devices as crud_get_all_devices,  # Renamed import
     DeviceNotFoundError,
     DeviceAlreadyExistsError,
     DatabaseError,
     UserNotFoundError
 )
+from app.db.models import Device as DBDevice  # For type hinting
+from app.models.device import DeviceCreate, DeviceUpdate, DeviceResponse  # For type hinting
 
 # Configure logger
 logger = logging.getLogger(__name__)
@@ -22,63 +26,56 @@ logger = logging.getLogger(__name__)
 class DeviceService:
     """Service for managing IoT devices"""
 
-    async def register_device(self, device_data: Dict[str, Any], owner_id: int) -> Dict[str, Any]:
+    async def register_device(self, device_data: DeviceCreate, owner_id: int) -> DBDevice:
         """
-        Register a new device or retrieve existing device
+        Register a new device or retrieve existing device.
+        Uses DeviceCreate model for input.
 
         Args:
-            device_data: The device data with device_id, name, and type
+            device_data: The device data (DeviceCreate model instance)
             owner_id: ID of the device owner
 
         Returns:
-            Response indicating the status of the operation
+            The created or existing DBDevice object
         """
-        # Extract device information
-        device_id = device_data.get("device_id")
-        if not device_id:
-            logger.error("Missing device ID in registration data")
-            raise HTTPException(status_code=400, detail="Missing device ID in registration data")
+        unique_key = device_data.unique_key  # From DeviceCreate model
+        if not unique_key:
+            logger.error("Missing device unique_key in registration data")
+            raise HTTPException(status_code=400, detail="Missing unique_key in registration data")
 
-        name = device_data.get("name", "Unnamed Device")
-        device_type = device_data.get("type", "unknown")
+        name = device_data.name if device_data.name else "Unnamed Device"
+        type_code = device_data.type_code if device_data.type_code else "unknown"
 
         try:
             # Create or get existing device
+            # Ensure crud.create_device expects unique_key, name, type_code, owner_id
             device = create_device(
-                device_id=device_id,
+                unique_key=unique_key,
                 name=name,
-                type=device_type,
+                type_code=type_code,
                 owner_id=owner_id
             )
 
-            # Log the successful operation
-            logger.info(f"Device registered: id={device.id}, device_id={device_id}, owner_id={owner_id}")
+            logger.info(
+                f"Device registered/retrieved: id={device.id}, unique_key={device.unique_key}, owner_id={owner_id}")
+            return device
 
-            # Return success
-            return {
-                "status": "success",
-                "message": "Device registered successfully",
-                "device_id": device_id,
-                "internal_id": device.id,
-                "name": device.name,
-                "type": device.type,
-                "owner_id": device.owner_id
-            }
+        except DeviceAlreadyExistsError:  # Should be handled by create_device returning existing
+            # This path might not be hit if create_device always returns the device
+            existing_device = get_device_by_id(unique_key=unique_key)  # Need a get_device_by_unique_key
+            logger.info(f"Device already registered: unique_key={unique_key}")
+            if existing_device:
+                return existing_device
+            # Fallback, though ideally create_device handles this logic
+            raise HTTPException(status_code=409,
+                                detail=f"Device with unique_key {unique_key} already exists, but retrieval failed.")
 
-        except DeviceAlreadyExistsError:
-            # This might not be an error since create_device returns existing device
-            logger.info(f"Device already registered: device_id={device_id}")
-            return {
-                "status": "success",
-                "message": "Device already registered",
-                "device_id": device_id
-            }
 
         except UserNotFoundError:
-            logger.error(f"User not found: device_id={device_id}")
+            logger.error(f"User not found: user_id={owner_id}")
             raise HTTPException(
                 status_code=404,
-                detail=f"User {owner_id} not found"
+                detail=f"User with id {owner_id} not found"
             )
 
         except DatabaseError as e:
@@ -88,37 +85,29 @@ class DeviceService:
                 detail="Failed to register device due to database error"
             )
 
-    async def update_device_info(self, id: int, update_data: Dict[str, Any]) -> Dict[str, Any]:
+    async def update_device_info(self, device_id: int, update_data: DeviceUpdate) -> DBDevice:
         """
-        Update device information
+        Update device information. Uses DeviceUpdate model for input.
 
         Args:
-            id: The device internal ID
-            update_data: The device data to update
+            device_id: The device internal database ID
+            update_data: The device data to update (DeviceUpdate model instance)
 
         Returns:
-            Response indicating the status of the operation
+            The updated DBDevice object
         """
         try:
-            # Update the device
-            updated_device = update_device(id, update_data)
+            # update_device CRUD function expects a dict
+            updated_device = update_device(device_id, update_data.dict(exclude_unset=True))
 
-            logger.info(f"Device updated: id={updated_device.id}, device_id={updated_device.device_id}")
-            return {
-                "status": "success",
-                "message": "Device updated successfully",
-                "device_id": updated_device.device_id,
-                "internal_id": updated_device.id,
-                "name": updated_device.name,
-                "type": updated_device.type,
-                "owner_id": updated_device.owner_id
-            }
+            logger.info(f"Device updated: id={updated_device.id}")
+            return updated_device
 
         except DeviceNotFoundError:
-            logger.warning(f"Device not found for update: id={id}")
+            logger.warning(f"Device not found for update: id={device_id}")
             raise HTTPException(
                 status_code=404,
-                detail=f"Device with id {id} not found"
+                detail=f"Device with id {device_id} not found"
             )
 
         except DatabaseError as e:
@@ -128,45 +117,51 @@ class DeviceService:
                 detail="Failed to update device due to database error"
             )
 
-    async def deregister_device(self, id: int) -> Dict[str, Any]:
+    async def deregister_device(self, device_id: int) -> Dict[
+        str, Any]:  # Returns dict matching DeviceDeregisterResponse
         """
         Deregister a device
 
         Args:
-            id: The device internal ID
+            device_id: The device internal database ID
 
         Returns:
             Response indicating the status of the operation
         """
         try:
             # Get device info before deletion for the response
-            device = get_device_by_id(id)
+            device = get_device_by_id(device_id)  # device_id is the primary key 'id'
             if not device:
-                logger.warning(f"Device not found for deregistration: id={id}")
+                logger.warning(f"Device not found for deregistration: id={device_id}")
                 raise HTTPException(
                     status_code=404,
-                    detail=f"Device with id {id} not found"
+                    detail=f"Device with id {device_id} not found"
                 )
 
+            device_unique_key = device.unique_key  # Store before deletion
+
             # Delete the device
-            delete_result = delete_device(id)
+            delete_result = delete_device(device_id)
 
             if delete_result:
-                logger.info(f"Device deregistered: id={id}, device_id={device.device_id}")
+                logger.info(f"Device deregistered: id={device_id}")
                 return {
                     "status": "success",
                     "message": "Device deregistered successfully",
-                    "device_id": device.device_id,
-                    "internal_id": id
+                    "unique_key": device_unique_key,
+                    "id": device_id
                 }
             else:
-                # This shouldn't happen if we already checked device exists
-                logger.warning(f"Device deregistration failed: id={id}")
-                return {
-                    "status": "warning",
-                    "message": "Device deregistration failed",
-                    "internal_id": id
-                }
+                # This path should ideally not be hit if the above check passes
+                # and delete_device raises an error or returns False consistently.
+                logger.warning(
+                    f"Device deregistration failed: id={device_id}, device may not have existed or another issue.")
+                # Re-raising as 404 if it implies not found, or 500 for other failure.
+                raise HTTPException(
+                    status_code=404,  # Or 500 if deletion failed for other reasons
+                    detail=f"Device with id {device_id} could not be deregistered or was not found."
+                )
+
 
         except DatabaseError as e:
             logger.error(f"Database error deregistering device: {str(e)}")
@@ -175,33 +170,25 @@ class DeviceService:
                 detail="Failed to deregister device due to database error"
             )
 
-    async def get_device_details(self, id: int) -> Dict[str, Any]:
+    async def get_device_details(self, device_id: int) -> Optional[DBDevice]:
         """
         Get device details
 
         Args:
-            id: The device internal ID
+            device_id: The device internal database ID
 
         Returns:
-            Device details
+            DBDevice object or None if not found (FastAPI will handle 404 if None and response_model is set)
         """
         try:
-            device = get_device_by_id(id)
+            device = get_device_by_id(device_id)  # device_id is the primary key 'id'
             if not device:
-                logger.warning(f"Device not found: id={id}")
+                logger.warning(f"Device not found: id={device_id}")
                 raise HTTPException(
                     status_code=404,
-                    detail=f"Device with id {id} not found"
+                    detail=f"Device with id {device_id} not found"
                 )
-
-            return {
-                "id": device.id,
-                "device_id": device.device_id,
-                "name": device.name,
-                "type": device.type,
-                "owner_id": device.owner_id,
-                "created_at": device.created_at
-            }
+            return device
 
         except DatabaseError as e:
             logger.error(f"Database error retrieving device details: {str(e)}")
@@ -210,7 +197,7 @@ class DeviceService:
                 detail="Failed to retrieve device details due to database error"
             )
 
-    async def get_user_devices(self, owner_id: int) -> List[Dict[str, Any]]:
+    async def get_user_devices(self, owner_id: int) -> List[DBDevice]:
         """
         Get all devices owned by a user
 
@@ -218,30 +205,16 @@ class DeviceService:
             owner_id: The owner's ID
 
         Returns:
-            List of device details
+            List of DBDevice objects
         """
         try:
-            devices = get_devices_by_owner_id(owner_id)
+            return get_devices_by_owner_id(owner_id)
 
-            # Transform the devices into a list of dictionaries
-            device_list = [
-                {
-                    "id": device.id,
-                    "device_id": device.device_id,
-                    "name": device.name,
-                    "type": device.type,
-                    "created_at": device.created_at
-                }
-                for device in devices
-            ] if devices else []
-
-            return device_list
-
-        except UserNotFoundError:
-            logger.error(f"User {owner_id}")
+        except UserNotFoundError:  # This is raised by the CRUD if user not found
+            logger.error(f"User with id {owner_id} not found when fetching devices.")
             raise HTTPException(
                 status_code=404,
-                detail=f"User {owner_id} not found"
+                detail=f"User with id {owner_id} not found"
             )
 
         except DatabaseError as e:
@@ -251,33 +224,15 @@ class DeviceService:
                 detail="Failed to retrieve user devices due to database error"
             )
 
-
-    async def get_all_devices(self) -> List[Dict[str, Any]]:
+    async def get_all_devices(self) -> List[DBDevice]:
         """
         Get all devices in the system
 
         Returns:
-            List of all device details
+            List of all DBDevice objects
         """
         try:
-            from app.db.crud.devices import get_all_devices  # Import the function we created earlier
-
-            devices = get_all_devices()
-
-            # Transform the devices into a list of dictionaries
-            device_list = [
-                {
-                    "id": device.id,
-                    "device_id": device.device_id,
-                    "name": device.name,
-                    "type": device.type,
-                    "owner_id": device.owner_id,
-                    "created_at": device.created_at
-                }
-                for device in devices
-            ] if devices else []
-
-            return device_list
+            return crud_get_all_devices()
 
         except DatabaseError as e:
             logger.error(f"Database error retrieving all devices: {str(e)}")

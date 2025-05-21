@@ -1,28 +1,27 @@
-# app/api/endpoints/clerk_webhooks.py
+# app/api/endpoints/device_reading.py
+# app/api/endpoints/device_reading.py
 from datetime import datetime
 from typing import List
 
 from fastapi import APIRouter, Request, Depends, HTTPException, status, Header
-from fastapi.param_functions import Path, Query, Body  # Add this import
+from fastapi.param_functions import Path, Query, Body
 
 from app.auth import get_current_user
 from app.auth.device_auth import authorize_device
 from app.auth.role_auth import authorize_role
-from app.models.device_reading import ReadingResponse, ReadingCreate
+from app.models.device_reading import ReadingResponse, ReadingCreate, StatsResponse, ReadingOperationResponse
 from app.services.device_reading_service import DeviceReadingService
 
-# Create router
 router = APIRouter()
 
-# Device reading endpoints
 @router.get("/{device_id}/readings", response_model=List[ReadingResponse])
 def get_device_readings(
         device_id: int = Path(..., description="The ID of the device"),
         service: DeviceReadingService = Depends(),
         user=Depends(get_current_user)
 ):
-    """Get all readings for a device"""
     authorize_device(user, device_id)
+    # Service returns List[DBDeviceReading], FastAPI converts using ReadingResponse.Config.orm_mode
     return service.get_readings_by_device(device_id)
 
 
@@ -33,8 +32,8 @@ def get_latest_readings(
         service: DeviceReadingService = Depends(),
         user=Depends(get_current_user)
 ):
-    """Get the latest readings for a device"""
     authorize_device(user, device_id)
+    # Service returns List[DBDeviceReading]
     return service.get_latest_readings(device_id, limit)
 
 
@@ -45,8 +44,8 @@ def get_nearest_reading(
         service: DeviceReadingService = Depends(),
         user=Depends(get_current_user)
 ):
-    """Get the reading closest to the provided timestamp"""
     authorize_device(user, device_id)
+    # Service now returns a ReadingResponse Pydantic model instance
     return service.get_reading_near_timestamp(device_id, timestamp)
 
 
@@ -58,12 +57,12 @@ def get_readings_in_range(
         service: DeviceReadingService = Depends(),
         user=Depends(get_current_user)
 ):
-    """Get readings within a specified time range"""
     authorize_device(user, device_id)
+    # Service returns List[DBDeviceReading]
     return service.get_readings_in_time_range(device_id, start, end)
 
 
-@router.get("/{device_id}/readings/stats")
+@router.get("/{device_id}/readings/stats", response_model=StatsResponse)
 def get_reading_stats(
         device_id: int = Path(..., description="The ID of the device"),
         start: datetime = Query(..., description="Start of time range"),
@@ -71,8 +70,8 @@ def get_reading_stats(
         service: DeviceReadingService = Depends(),
         user=Depends(get_current_user)
 ):
-    """Get aggregated statistics for readings in a time range"""
     authorize_device(user, device_id)
+    # Service returns a dict matching StatsResponse
     return service.get_aggregated_readings(device_id, start, end)
 
 
@@ -83,21 +82,20 @@ def get_reading(
         service: DeviceReadingService = Depends(),
         user=Depends(get_current_user)
 ):
-    """Get a specific reading by device ID and timestamp"""
     authorize_device(user, device_id)
+    # Service returns DBDeviceReading object
     return service.get_reading(device_id, timestamp)
 
 
-@router.post("/{device_id}/readings", response_model=dict, status_code=201)
-def create_reading(
+@router.post("/{device_id}/readings", response_model=ReadingOperationResponse, status_code=201)
+def create_reading_entry( # Renamed to avoid conflict with service method name
         device_id: int = Path(..., description="The ID of the device"),
         reading: ReadingCreate = Body(...),
         service: DeviceReadingService = Depends(),
         user=Depends(get_current_user)
-
 ):
-    authorize_role(user['sub'], "admin")
-    """Create a new device reading"""
+    authorize_role(user['sub'], "admin") # Assuming user['sub'] is the clerk_id
+    # Service returns a dict matching ReadingOperationResponse
     return service.create_reading(
         device_id=device_id,
         time=reading.time,
@@ -107,20 +105,18 @@ def create_reading(
     )
 
 
-@router.put("/{device_id}/readings/{timestamp}", response_model=dict)
-def update_reading(
+@router.put("/{device_id}/readings/{timestamp}", response_model=ReadingOperationResponse)
+def update_reading_entry( # Renamed
         device_id: int = Path(..., description="The ID of the device"),
         timestamp: datetime = Path(..., description="The timestamp of the reading"),
         reading: ReadingCreate = Body(...),
         service: DeviceReadingService = Depends(),
         user=Depends(get_current_user)
 ):
-    authorize_role(user, "admin")
-    """Update a specific device reading"""
-    # Ensure the timestamp in the URL matches the one in the body
+    authorize_role(user['sub'], "admin") # Assuming user['sub'] is the clerk_id
     if timestamp != reading.time:
         raise HTTPException(status_code=400, detail="Timestamp in URL must match timestamp in body")
-
+    # Service returns a dict matching ReadingOperationResponse
     return service.update_reading(
         device_id=device_id,
         time=reading.time,
@@ -130,14 +126,13 @@ def update_reading(
     )
 
 
-@router.delete("/{device_id}/readings/{timestamp}", response_model=dict)
-def delete_reading(
+@router.delete("/{device_id}/readings/{timestamp}", response_model=ReadingOperationResponse) # Changed to ReadingOperationResponse for consistency
+def delete_reading_entry( # Renamed
         device_id: int = Path(..., description="The ID of the device"),
         timestamp: datetime = Path(..., description="The timestamp of the reading"),
         service: DeviceReadingService = Depends(),
         user=Depends(get_current_user)
 ):
-    authorize_role(user, "admin")
-    """Delete a specific device reading"""
+    authorize_role(user['sub'], "admin") # Assuming user['sub'] is the clerk_id
+    # Service returns a dict matching ReadingOperationResponse
     return service.delete_reading(device_id, timestamp)
-

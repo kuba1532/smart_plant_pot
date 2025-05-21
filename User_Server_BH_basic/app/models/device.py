@@ -6,9 +6,9 @@ from pydantic import BaseModel, Field
 
 class DeviceBase(BaseModel):
     """Base model for device operations"""
-    device_id: str = Field(..., description="Unique identifier for the device")
+    unique_key: str = Field(..., description="Unique identifier for the device (e.g., MAC address or serial number)")
     name: Optional[str] = Field(None, description="Human-readable name for the device")
-    type: Optional[str] = Field(None, description="Type or category of device")
+    type_code: Optional[str] = Field(None, description="Device type code, refers to device_types.type_code")
 
 
 class DeviceCreate(DeviceBase):
@@ -19,8 +19,8 @@ class DeviceCreate(DeviceBase):
 class DeviceUpdate(BaseModel):
     """Model for updating an existing device"""
     name: Optional[str] = Field(None, description="Human-readable name for the device")
-    type: Optional[str] = Field(None, description="Type or category of device")
-    device_id: Optional[str] = Field(None, description="Unique identifier for the device")
+    type_code: Optional[str] = Field(None, description="Type or category of device")
+    unique_key: Optional[str] = Field(None, description="Unique identifier for the device")
 
 
 class DeviceResponse(DeviceBase):
@@ -31,3 +31,9 @@ class DeviceResponse(DeviceBase):
 
     class Config:
         orm_mode = True
+
+class DeviceDeregisterResponse(BaseModel):
+    status: str
+    message: str
+    unique_key: str
+    id: int # This is the internal DB id of the device

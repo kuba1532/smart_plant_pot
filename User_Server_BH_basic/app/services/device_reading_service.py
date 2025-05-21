@@ -18,6 +18,8 @@ from app.db.crud.device_readings import (
     DeviceNotFoundError,
     DatabaseError
 )
+from app.db.models import DeviceReading as DBDeviceReading  # Import for type hinting
+from app.models.device_reading import ReadingResponse  # Import for type hinting
 
 # Configure logger
 logger = logging.getLogger(__name__)
@@ -29,7 +31,8 @@ class DeviceReadingService:
     def create_reading(self, device_id: int, time: datetime,
                        humidity: Optional[float] = None,
                        light_intensity: Optional[float] = None,
-                       temperature: Optional[float] = None) -> Dict[str, Any]:
+                       temperature: Optional[float] = None) -> Dict[
+        str, Any]:  # Returns dict matching ReadingOperationResponse
         """
         Create a new device reading or update if it already exists
 
@@ -52,11 +55,13 @@ class DeviceReadingService:
                 temperature=temperature
             )
 
-            logger.info(f"Reading created: device_id={device_id}, time={time}")
+            logger.info(f"Reading created/updated: device_id={device_id}, time={time}")
+
+            message = "Reading updated successfully" if reading.humidity == humidity else "Reading created successfully"  # Basic check, might need more robust logic
 
             return {
                 "status": "success",
-                "message": "Reading created successfully",
+                "message": message,
                 "device_id": device_id,
                 "time": time
             }
@@ -67,27 +72,19 @@ class DeviceReadingService:
                 status_code=404,
                 detail=f"Device with id {device_id} not found"
             )
-
-        except DeviceReadingAlreadyExistsError:
-            logger.info(f"Reading updated instead of created: device_id={device_id}, time={time}")
-            return {
-                "status": "success",
-                "message": "Reading updated successfully",
-                "device_id": device_id,
-                "time": time
-            }
-
+        # DeviceReadingAlreadyExistsError is handled by create_device_reading by updating
         except DatabaseError as e:
-            logger.error(f"Database error processing reading creation: {str(e)}")
+            logger.error(f"Database error processing reading creation/update: {str(e)}")
             raise HTTPException(
                 status_code=500,
-                detail="Failed to process reading creation due to database error"
+                detail="Failed to process reading creation/update due to database error"
             )
 
     def update_reading(self, device_id: int, time: datetime,
                        humidity: Optional[float] = None,
                        light_intensity: Optional[float] = None,
-                       temperature: Optional[float] = None) -> Dict[str, Any]:
+                       temperature: Optional[float] = None) -> Dict[
+        str, Any]:  # Returns dict matching ReadingOperationResponse
         """
         Update an existing device reading
 
@@ -133,7 +130,8 @@ class DeviceReadingService:
                 detail="Failed to process reading update due to database error"
             )
 
-    def delete_reading(self, device_id: int, time: datetime) -> Dict[str, Any]:
+    def delete_reading(self, device_id: int, time: datetime) -> Dict[
+        str, Any]:  # Returns dict matching ReadingOperationResponse (or similar error dict)
         """
         Delete a device reading
 
@@ -153,16 +151,18 @@ class DeviceReadingService:
                     "status": "success",
                     "message": "Reading deleted successfully",
                     "device_id": device_id,
-                    "time": time
+                    "time": time  # time is part of ReadingOperationResponse
                 }
             else:
+                # This case (reading not found) should ideally raise DeviceReadingNotFoundError from CRUD
+                # For consistency, let's ensure delete_device_reading raises if not found or adjust here.
+                # Assuming CRUD returns False if not found and doesn't raise.
                 logger.warning(f"Reading not found for deletion: device_id={device_id}, time={time}")
-                return {
-                    "status": "warning",
-                    "message": "Reading not found for deletion",
-                    "device_id": device_id,
-                    "time": time
-                }
+                raise HTTPException(
+                    status_code=404,
+                    detail=f"Reading for device {device_id} at time {time} not found for deletion"
+                )
+
 
         except DatabaseError as e:
             logger.error(f"Database error processing reading deletion: {str(e)}")
@@ -171,7 +171,7 @@ class DeviceReadingService:
                 detail="Failed to process reading deletion due to database error"
             )
 
-    def get_reading(self, device_id: int, time: datetime) -> Dict[str, Any]:
+    def get_reading(self, device_id: int, time: datetime) -> Optional[DBDeviceReading]:
         """
         Get a specific device reading
 
@@ -180,7 +180,7 @@ class DeviceReadingService:
             time: Timestamp of the reading
 
         Returns:
-            The reading data
+            The DBDeviceReading object or None
         """
         try:
             reading = get_device_reading(device_id=device_id, time=time)
@@ -191,15 +191,7 @@ class DeviceReadingService:
                     status_code=404,
                     detail=f"Reading for device {device_id} at time {time} not found"
                 )
-
-            # Convert to dict for response
-            return {
-                "device_id": reading.device_id,
-                "time": reading.time,
-                "humidity": reading.humidity,
-                "light_intensity": reading.light_intensity,
-                "temperature": reading.temperature
-            }
+            return reading
 
         except DatabaseError as e:
             logger.error(f"Database error retrieving reading: {str(e)}")
@@ -208,7 +200,7 @@ class DeviceReadingService:
                 detail="Failed to retrieve reading due to database error"
             )
 
-    def get_readings_by_device(self, device_id: int) -> List[Dict[str, Any]]:
+    def get_readings_by_device(self, device_id: int) -> List[DBDeviceReading]:
         """
         Get all readings for a device
 
@@ -216,22 +208,10 @@ class DeviceReadingService:
             device_id: The ID of the device
 
         Returns:
-            List of reading data
+            List of DBDeviceReading objects
         """
         try:
-            readings = get_device_readings_by_device_id(device_id=device_id)
-
-            # Convert to list of dicts for response
-            return [
-                {
-                    "device_id": r.device_id,
-                    "time": r.time,
-                    "humidity": r.humidity,
-                    "light_intensity": r.light_intensity,
-                    "temperature": r.temperature
-                }
-                for r in readings
-            ]
+            return get_device_readings_by_device_id(device_id=device_id)
 
         except DeviceNotFoundError as e:
             logger.error(f"Device not found: {str(e)}")
@@ -247,7 +227,7 @@ class DeviceReadingService:
                 detail="Failed to retrieve device readings due to database error"
             )
 
-    def get_latest_readings(self, device_id: int, limit: int = 10) -> List[Dict[str, Any]]:
+    def get_latest_readings(self, device_id: int, limit: int = 10) -> List[DBDeviceReading]:
         """
         Get the latest readings for a device
 
@@ -256,22 +236,10 @@ class DeviceReadingService:
             limit: Number of readings to return (default 10)
 
         Returns:
-            List of the latest reading data
+            List of the latest DBDeviceReading objects
         """
         try:
-            readings = get_latest_device_readings(device_id=device_id, limit=limit)
-
-            # Convert to list of dicts for response
-            return [
-                {
-                    "device_id": r.device_id,
-                    "time": r.time,
-                    "humidity": r.humidity,
-                    "light_intensity": r.light_intensity,
-                    "temperature": r.temperature
-                }
-                for r in readings
-            ]
+            return get_latest_device_readings(device_id=device_id, limit=limit)
 
         except DeviceNotFoundError as e:
             logger.error(f"Device not found: {str(e)}")
@@ -287,36 +255,32 @@ class DeviceReadingService:
                 detail="Failed to retrieve latest readings due to database error"
             )
 
-    def get_reading_near_timestamp(self, device_id: int, timestamp: datetime) -> Dict[str, Any]:
+    def get_reading_near_timestamp(self, device_id: int, timestamp: datetime) -> ReadingResponse:
         """
-        Get the reading closest to a specified timestamp
+        Get the reading closest to a specified timestamp, returned as a ReadingResponse Pydantic model.
 
         Args:
             device_id: The ID of the device
             timestamp: Target timestamp
 
         Returns:
-            The closest reading data
+            The closest reading data as a ReadingResponse object
         """
         try:
-            reading = get_reading_closest_to_timestamp(device_id=device_id, timestamp=timestamp)
+            reading_obj = get_reading_closest_to_timestamp(device_id=device_id, timestamp=timestamp)
 
-            if not reading:
+            if not reading_obj:
                 logger.warning(f"No readings found for device: device_id={device_id}")
                 raise HTTPException(
                     status_code=404,
                     detail=f"No readings found for device {device_id}"
                 )
 
-            # Convert to dict for response
-            return {
-                "device_id": reading.device_id,
-                "time": reading.time,
-                "humidity": reading.humidity,
-                "light_intensity": reading.light_intensity,
-                "temperature": reading.temperature,
-                "time_difference_seconds": abs((timestamp - reading.time).total_seconds())
-            }
+            # Convert to Pydantic model for response and add time_difference_seconds
+            response_data = ReadingResponse.from_orm(reading_obj)
+            response_data.time_difference_seconds = abs((timestamp - reading_obj.time).total_seconds())
+            return response_data
+
 
         except DeviceNotFoundError as e:
             logger.error(f"Device not found: {str(e)}")
@@ -333,7 +297,7 @@ class DeviceReadingService:
             )
 
     def get_readings_in_time_range(self, device_id: int, start_time: datetime, end_time: datetime) -> List[
-        Dict[str, Any]]:
+        DBDeviceReading]:
         """
         Get readings within a specified time range
 
@@ -343,26 +307,14 @@ class DeviceReadingService:
             end_time: End of the time range
 
         Returns:
-            List of reading data within the time range
+            List of DBDeviceReading objects within the time range
         """
         try:
-            readings = get_readings_in_time_range(
+            return get_readings_in_time_range(
                 device_id=device_id,
                 start_time=start_time,
                 end_time=end_time
             )
-
-            # Convert to list of dicts for response
-            return [
-                {
-                    "device_id": r.device_id,
-                    "time": r.time,
-                    "humidity": r.humidity,
-                    "light_intensity": r.light_intensity,
-                    "temperature": r.temperature
-                }
-                for r in readings
-            ]
 
         except DeviceNotFoundError as e:
             logger.error(f"Device not found: {str(e)}")
@@ -398,10 +350,10 @@ class DeviceReadingService:
             "errors": []
         }
 
-        for reading in readings:
+        for reading_data in readings:
             try:
-                device_id = reading.get("device_id")
-                time = reading.get("time")
+                device_id = reading_data.get("device_id")
+                time = reading_data.get("time")
 
                 if not device_id or not time:
                     results["failed"] += 1
@@ -412,21 +364,22 @@ class DeviceReadingService:
                     })
                     continue
 
-                create_device_reading(
+                create_device_reading(  # This will update if exists
                     device_id=device_id,
                     time=time,
-                    humidity=reading.get("humidity"),
-                    light_intensity=reading.get("light_intensity"),
-                    temperature=reading.get("temperature")
+                    humidity=reading_data.get("humidity"),
+                    light_intensity=reading_data.get("light_intensity"),
+                    temperature=reading_data.get("temperature")
                 )
 
                 results["successful"] += 1
 
-            except (DeviceNotFoundError, DeviceReadingAlreadyExistsError, DatabaseError) as e:
+            except (DeviceNotFoundError, DeviceReadingAlreadyExistsError,
+                    DatabaseError) as e:  # DeviceReadingAlreadyExistsError handled by update in create_device_reading
                 results["failed"] += 1
                 results["errors"].append({
-                    "device_id": reading.get("device_id"),
-                    "time": reading.get("time"),
+                    "device_id": reading_data.get("device_id"),
+                    "time": reading_data.get("time"),
                     "error": str(e)
                 })
 
@@ -437,7 +390,8 @@ class DeviceReadingService:
 
         return results
 
-    def get_aggregated_readings(self, device_id: int, start_time: datetime, end_time: datetime) -> Dict[str, Any]:
+    def get_aggregated_readings(self, device_id: int, start_time: datetime, end_time: datetime) -> Dict[
+        str, Any]:  # Returns dict matching StatsResponse
         """
         Get aggregated stats for readings in a time range (min/max/avg)
 

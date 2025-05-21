@@ -9,21 +9,21 @@ logger = logging.getLogger(__name__)
 
 
 @with_db_session
-def create_device(device_id: str, name: str, type: str, owner_id: int, db=None):
+def create_device(unique_key: str, name: str, type_code: str, owner_id: int, db=None):
     try:
         # First, verify the user exists
         user = db.query(User).filter(User.id == owner_id).first()
         if not user:
             raise UserNotFoundError(f"User with id {owner_id} does not exist")
 
-        existing_device = db.query(Device).filter(Device.device_id == device_id).first()
+        existing_device = db.query(Device).filter(Device.unique_key == unique_key).first()
         if existing_device:
             return existing_device
 
         new_device = Device(
-            device_id=device_id,
+            unique_key=unique_key,
             name=name,
-            type=type,
+            type_code=type_code,
             owner_id=owner_id
         )
         db.add(new_device)
@@ -34,8 +34,8 @@ def create_device(device_id: str, name: str, type: str, owner_id: int, db=None):
         db.rollback()
         # Check specifically for unique constraint violation on device_id
         if "unique constraint" in str(e).lower() and "device_id" in str(e).lower():
-            logger.error(f"Device with device_id {device_id} already exists: {str(e)}")
-            raise DeviceAlreadyExistsError(f"Device with device_id {device_id} already exists") from e
+            logger.error(f"Device with unique_key {unique_key} already exists: {str(e)}")
+            raise DeviceAlreadyExistsError(f"Device with unique_key {unique_key} already exists") from e
         # Check for foreign key constraint violation
         elif "foreign key constraint" in str(e).lower():
             logger.error(f"Foreign key constraint violation (likely invalid owner_id): {str(e)}")
@@ -45,7 +45,7 @@ def create_device(device_id: str, name: str, type: str, owner_id: int, db=None):
             raise DatabaseError(f"Failed to create device: {str(e)}") from e
     except SQLAlchemyError as e:
         db.rollback()
-        logger.error(f"Database error creating device with device_id {device_id}: {str(e)}")
+        logger.error(f"Database error creating device with unique_key {unique_key}: {str(e)}")
         raise DatabaseError(f"Failed to create device: {str(e)}") from e
 
 

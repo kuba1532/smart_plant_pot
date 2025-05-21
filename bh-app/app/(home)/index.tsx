@@ -1,3 +1,4 @@
+// app/(home)/index.tsx
 import { SignedIn, SignedOut, useUser } from '@clerk/clerk-expo'
 import { Text, View, StyleSheet } from 'react-native'
 import { SignOutButton } from '@/app/components/SignOutButton'
@@ -5,6 +6,7 @@ import { Container } from '@/app/components/Container'
 import { Button } from '@/app/components/Button'
 import { Link } from 'expo-router'
 import { colors, spacing } from '@/app/styles/theme'
+import { UserData } from '@/app/components/UserData' // Import the new component
 
 export default function Page() {
   const { user } = useUser()
@@ -24,6 +26,9 @@ export default function Page() {
               </Text>
             </View>
           </View>
+          
+          {/* Add the UserData component here */}
+          <UserData />
           
           <View style={styles.buttonContainer}>
             <SignOutButton />
