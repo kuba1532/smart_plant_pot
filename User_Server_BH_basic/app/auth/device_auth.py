@@ -26,10 +26,10 @@ def authorize_device(user, id: int):
 
     print(user_id)
     for device in users_devices:
-        print(device.id)
+        print(device.owner_id)
 
     # Check if any device in the list has the matching device_id
-    if not any(device.id == id for device in users_devices) or not is_matching_role(user, "admin"):
+    if not any(device.owner_id == user_id for device in users_devices) or not is_matching_role(user, "admin"):
         raise HTTPException(
             status_code=403,
             detail=f"User does not have permission to access this device"
