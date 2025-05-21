@@ -1,38 +1,44 @@
-import { Text, TextInput, View, StyleSheet } from 'react-native'
-import { colors, spacing, borderRadius } from '../styles/theme'
+// app/components/Input.tsx
+import { Text, TextInput, View, StyleSheet, TextInputProps } from 'react-native';
+import { colors, spacing, borderRadius } from '../styles/theme';
 
-interface InputProps {
-  value: string
-  onChangeText: (text: string) => void
-  placeholder: string
-  secureTextEntry?: boolean
-  label?: string
-  autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters'
+// Combine custom props with standard TextInputProps
+interface InputProps extends Omit<TextInputProps, 'value' | 'onChangeText' | 'placeholder' | 'secureTextEntry' | 'autoCapitalize' | 'style'> {
+  value: string;
+  onChangeText: (text: string) => void;
+  placeholder: string;
+  secureTextEntry?: boolean;
+  label?: string;
+  autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
+  style?: TextInputProps['style']; // To style the TextInput itself
 }
 
 export const Input = ({
-  value,
-  onChangeText,
-  placeholder,
-  secureTextEntry = false,
-  label,
-  autoCapitalize = 'none',
-}: InputProps) => {
+                        value,
+                        onChangeText,
+                        placeholder,
+                        secureTextEntry = false,
+                        label,
+                        autoCapitalize = 'none',
+                        style: textInputStyle, // Renamed to avoid conflict with View's style prop if this component had one
+                        ...rest // Pass other TextInputProps like multiline, numberOfLines, textAlignVertical etc.
+                      }: InputProps) => {
   return (
-    <View style={styles.container}>
-      {label && <Text style={styles.label}>{label}</Text>}
-      <TextInput
-        value={value}
-        onChangeText={onChangeText}
-        placeholder={placeholder}
-        secureTextEntry={secureTextEntry}
-        autoCapitalize={autoCapitalize}
-        style={styles.input}
-        placeholderTextColor={colors.textLight}
-      />
-    </View>
-  )
-}
+      <View style={styles.container}>
+        {label && <Text style={styles.label}>{label}</Text>}
+        <TextInput
+            value={value}
+            onChangeText={onChangeText}
+            placeholder={placeholder}
+            secureTextEntry={secureTextEntry}
+            autoCapitalize={autoCapitalize}
+            style={[styles.input, textInputStyle]} // Apply textInputStyle here
+            placeholderTextColor={colors.textLight}
+            {...rest} // Spread remaining props
+        />
+      </View>
+  );
+};
 
 const styles = StyleSheet.create({
   container: {
@@ -55,6 +61,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
     color: colors.text,
   },
-})
+});
 
 export default Input;

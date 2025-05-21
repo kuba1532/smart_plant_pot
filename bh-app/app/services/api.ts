@@ -1,15 +1,41 @@
 // app/services/api.ts
 import { useAuth } from '@clerk/clerk-expo';
-import { useCallback, useMemo } from 'react'; // Import useCallback and useMemo
+import { useCallback, useMemo } from 'react';
 
 const API_BASE_URL = 'https://user-server-bh-168223699989.us-central1.run.app';
+
+// Add interfaces for request bodies and responses based on openapi.json
+export interface ChangeSettingsPayload {
+  maxHumidity: number,
+  minHumidity: number,
+  maxBrightness: number,
+  minBrightness: number,
+  brightPeriodStart: string,
+  brightPeriodEnd: string,
+  deviceId: number
+}
+
+export interface SendCommandPayload {
+  waterFor: string,
+  illuminateFor: string,
+  deviceId: number
+}
+
+export interface ActionResponse {
+  device_unique_key: string;
+  status: string;
+  message?: string;
+  settings?: object; // For ChangeSettingsOutput
+  command?: string;  // For SendCommandOutput
+}
+
 
 export const useApi = () => {
   const { getToken } = useAuth();
 
   const authFetch = useCallback(async (endpoint: string, options: RequestInit = {}) => {
     try {
-      const token = await getToken(); // getToken from useAuth is generally stable
+      const token = await getToken();
       if (!token) {
         throw new Error('Not authenticated');
       }
@@ -33,14 +59,13 @@ export const useApi = () => {
         console.error('API error response:', errorData);
         throw new Error(errorData.message || `API error: ${response.status}`);
       }
-      // Check if response is empty before trying to parse JSON
       const text = await response.text();
-      return text ? JSON.parse(text) : {}; // Return empty object or handle as appropriate if empty response is valid
+      return text ? JSON.parse(text) : {};
     } catch (error) {
       console.error('Error in authFetch:', error);
       throw error;
     }
-  }, [getToken]); // getToken is the primary dependency here
+  }, [getToken]);
 
   const getUserData = useCallback(async () => {
     return authFetch('/users/me');
@@ -54,13 +79,27 @@ export const useApi = () => {
     return authFetch(`/devices/${deviceId}/readings/latest?limit=${limit}`);
   }, [authFetch]);
 
-  // Memoize the returned object so its reference is stable
-  // as long as its constituent functions are stable.
+  const changeDeviceSettings = useCallback(async (payload: ChangeSettingsPayload): Promise<ActionResponse> => {
+    return authFetch(`/actions/change-settings`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }, [authFetch]);
+
+  const sendDeviceCommand = useCallback(async (payload: SendCommandPayload): Promise<ActionResponse> => {
+    return authFetch(`/actions/send-command`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }, [authFetch]);
+
   return useMemo(() => ({
     getUserData,
     getUserDevices,
     getDeviceReadings,
-  }), [getUserData, getUserDevices, getDeviceReadings]);
+    changeDeviceSettings,
+    sendDeviceCommand,
+  }), [getUserData, getUserDevices, getDeviceReadings, changeDeviceSettings, sendDeviceCommand]);
 };
 
 export default useApi;

@@ -1,3 +1,5 @@
+import string
+
 from pydantic import BaseModel, Field
 from datetime import datetime, time
 
@@ -10,5 +12,6 @@ class SendCommandCreate(BaseModel):
         allow_population_by_field_name = True
 
 class SendCommandOutput(BaseModel):
-    result: str
-    updated_at: datetime
+    device_id: int
+    status: string
+    message: string

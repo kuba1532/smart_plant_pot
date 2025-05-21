@@ -19,4 +19,4 @@ def update_settings(data: SendCommandCreate,
     if not success:
         raise HTTPException(status_code=502, detail=message)
 
-    return SendCommandOutput(result=message, updated_at=datetime.utcnow())
+    return SendCommandOutput(device_id=data.device_id, status="Success", message=message)
