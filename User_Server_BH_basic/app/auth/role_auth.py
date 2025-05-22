@@ -35,6 +35,10 @@ def authorize_role(user, required_role):
                 user_role = user.public_metadata.role
             elif hasattr(user, 'metadata') and hasattr(user.metadata, 'role') and user.metadata.role:
                 user_role = user.metadata.role
+            elif hasattr(user, 'public_metadata') and isinstance(user.public_metadata, dict) and user.public_metadata['role']:
+                    user_role = user.public_metadata['role']
+            elif hasattr(user, 'metadata') and isinstance(user.metadata, dict) and user.metadata['role']:
+                    user_role = user.metadata['role']
             else:
                 print("debug2")
                 user_role = "user"
@@ -84,15 +88,18 @@ def is_matching_role(user, required_role):
                 print("debug1")
                 user_role = "user"
         # Check if user is a User object
+        # Try to access attributes instead of using bracket notation
+        if hasattr(user, 'public_metadata') and hasattr(user.public_metadata, 'role') and user.public_metadata.role:
+            user_role = user.public_metadata.role
+        elif hasattr(user, 'metadata') and hasattr(user.metadata, 'role') and user.metadata.role:
+            user_role = user.metadata.role
+        elif hasattr(user, 'public_metadata') and isinstance(user.public_metadata, dict) and user.public_metadata['role']:
+            user_role = user.public_metadata['role']
+        elif hasattr(user, 'metadata') and isinstance(user.metadata, dict) and user.metadata['role']:
+            user_role = user.metadata['role']
         else:
-            # Try to access attributes instead of using bracket notation
-            if hasattr(user, 'public_metadata') and hasattr(user.public_metadata, 'role') and user.public_metadata.role:
-                user_role = user.public_metadata.role
-            elif hasattr(user, 'metadata') and hasattr(user.metadata, 'role') and user.metadata.role:
-                user_role = user.metadata.role
-            else:
-                print("debug2")
-                user_role = "user"
+            print("debug2")
+            user_role = "user"
         print("user role " + user_role)
         print("required role " + required_role)
 
