@@ -4,7 +4,7 @@ import { useAuth } from '@clerk/clerk-expo';
 import { useApi } from '../services/api';
 
 // Define an interface for the device structure based on the API response
-export interface Device {
+export interface Device { // Keep this if it matches your API. If not, adjust.
   unique_key: string;
   name: string;
   type_code: string;

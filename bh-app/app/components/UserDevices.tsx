@@ -1,6 +1,6 @@
 // app/components/UserDevices.tsx
 import React, { useCallback } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, ScrollView, RefreshControl, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, ScrollView, RefreshControl, TouchableOpacity, ViewStyle } from 'react-native';
 import { Link } from 'expo-router';
 import { useUserDataContext, Device } from '../context/UserDataContext';
 import { colors, spacing, borderRadius } from '../styles/theme';
@@ -36,7 +36,11 @@ const DeviceCard: React.FC<{ device: Device }> = ({ device }) => {
     );
 };
 
-export const UserDevices: React.FC = () => {
+interface UserDevicesProps {
+    contentContainerStyle?: ViewStyle; // Allow passing contentContainerStyle from parent
+}
+
+export const UserDevices: React.FC<UserDevicesProps> = ({ contentContainerStyle }) => {
     const {
         devicesData,
         isDevicesLoading,
@@ -90,7 +94,7 @@ export const UserDevices: React.FC = () => {
         return (
             <ScrollView
                 contentContainerStyle={styles.statusContainer}
-                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
+                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} colors={[colors.primary]} tintColor={colors.primary}/>}
             >
                 <Text style={styles.statusText}>No devices found for your account.</Text>
                 <Text style={styles.hintText}>Pull down to refresh or add a new device through the portal.</Text>
@@ -101,7 +105,8 @@ export const UserDevices: React.FC = () => {
     return (
         <ScrollView
             style={styles.container}
-            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
+            contentContainerStyle={contentContainerStyle} // Apply passed contentContainerStyle
+            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} colors={[colors.primary]} tintColor={colors.primary}/>}
         >
             <Text style={styles.title}>Your Devices</Text>
             {devicesData.map((device) => (
@@ -120,7 +125,7 @@ const styles = StyleSheet.create({
         fontSize: 22,
         fontWeight: 'bold',
         color: colors.text,
-        marginBottom: spacing.md,
+        marginBottom: spacing.lg, // Increased margin
         textAlign: 'center',
     },
     statusContainer: {
@@ -150,7 +155,7 @@ const styles = StyleSheet.create({
         fontSize: 16,
     },
     deviceCard: {
-        backgroundColor: colors.background, // Keep background on the outer View for consistent shadow
+        backgroundColor: colors.secondary, // Use secondary beige for card background
         borderRadius: borderRadius.lg, // Keep border radius on outer View
         marginBottom: spacing.md,
         borderWidth: 1,
@@ -164,7 +169,7 @@ const styles = StyleSheet.create({
     deviceName: {
         fontSize: 18,
         fontWeight: 'bold',
-        color: colors.primary,
+        color: colors.primaryDark, // Darker green for better contrast on beige
         marginBottom: spacing.sm,
     },
     deviceCardContent: { // Style for the pressable content area
@@ -188,5 +193,3 @@ const styles = StyleSheet.create({
         textAlign: 'right',
     },
 });
-
-export default UserDevices;

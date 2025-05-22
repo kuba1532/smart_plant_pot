@@ -10,18 +10,22 @@ interface ButtonProps {
 
 export const Button = ({ title, onPress, variant = 'primary', fullWidth = false }: ButtonProps) => {
   return (
-    <TouchableOpacity
-      onPress={onPress}
-      style={[
-        styles.button,
-        styles[variant],
-        fullWidth && styles.fullWidth,
-      ]}
-    >
-      <Text style={[styles.buttonText, variant === 'secondary' && styles.secondaryText]}>
-        {title}
-      </Text>
-    </TouchableOpacity>
+      <TouchableOpacity
+          onPress={onPress}
+          style={[
+            styles.button,
+            styles[variant],
+            fullWidth && styles.fullWidth,
+          ]}
+      >
+        <Text style={[
+          styles.buttonTextBase,
+          variant === 'primary' && styles.primaryButtonText,
+          variant === 'secondary' && styles.secondaryButtonText,
+          variant === 'text' && styles.textButtonText]}>
+          {title}
+        </Text>
+      </TouchableOpacity>
   )
 }
 
@@ -45,17 +49,20 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
     paddingVertical: spacing.xs,
   },
-  buttonText: {
-    color: 'white',
+  buttonTextBase: {
     fontWeight: '500',
     fontSize: 16,
   },
-  secondaryText: {
+  primaryButtonText: {
+    color: colors.buttonTextPrimary, // Very light beige for primary buttons
+  },
+  secondaryButtonText: {
     color: colors.text,
+  },
+  textButtonText: {
+    color: colors.primary, // Use primary color for text buttons
   },
   fullWidth: {
     width: '100%',
   },
 })
-
-export default Button;

@@ -1,15 +1,21 @@
 export const colors = {
-  primary: '#2563EB', // Blue
-  primaryLight: '#3B82F6',
-  primaryDark: '#1D4ED8',
-  secondary: '#F3F4F6', // Light gray
-  text: '#111827',
-  textLight: '#6B7280',
-  background: '#FFFFFF',
-  error: '#EF4444',
-  success: '#10B981',
-  border: '#E5E7EB',
-}
+  primary: '#6A994E', // Warm Green
+  primaryLight: '#A7C957', // Lighter Warm Green
+  primaryDark: '#386641', // Darker Warm Green
+
+  background: '#FDFBF5', // Very Light Beige/Off-White (main app background)
+  secondary: '#EAE0D5', // Light Beige (for card backgrounds, secondary elements)
+  tertiary: '#D4C3B2',  // A slightly deeper beige, for subtle contrasts or borders if needed
+
+  text: '#4A443D', // Dark Brown/Warm Gray (for primary text)
+  textLight: '#8C7D70', // Lighter Brown/Warm Gray (for secondary text, placeholders)
+
+  border: '#C6BBAF', // Beige/Light Brown border
+  error: '#C0392B', // Muted Warm Red
+  success: '#5CB85C', // A compatible Green
+
+  buttonTextPrimary: '#FEFDF5', // Very light beige for text on primary buttons
+};
 
 export const spacing = {
   xs: 4,
@@ -18,6 +24,7 @@ export const spacing = {
   lg: 24,
   xl: 32,
   xxl: 48,
+  sl: 60,
 }
 
 export const fontSizes = {

@@ -49,10 +49,10 @@ export const UserData = () => {
 
               {/* Display fields based on /users/me response structure */}
               {userData.id !== undefined && (
-                <View style={styles.dataRow}>
-                  <Text style={styles.dataLabel}>Internal ID:</Text>
-                  <Text style={styles.dataValue}>{userData.id}</Text>
-                </View>
+                  <View style={styles.dataRow}>
+                    <Text style={styles.dataLabel}>Internal ID:</Text>
+                    <Text style={styles.dataValue}>{userData.id}</Text>
+                  </View>
               )}
               {!!userData.clerk_id && ( // or userData.clerk_id ? (...) : null
                   <View style={styles.dataRow}>
@@ -61,22 +61,22 @@ export const UserData = () => {
                   </View>
               )}
               {!!userData.created_at && (
-                <View style={styles.dataRow}>
-                  <Text style={styles.dataLabel}>Account Created:</Text>
-                  <Text style={styles.dataValue}>{new Date(userData.created_at).toLocaleString()}</Text>
-                </View>
+                  <View style={styles.dataRow}>
+                    <Text style={styles.dataLabel}>Account Created:</Text>
+                    <Text style={styles.dataValue}>{new Date(userData.created_at).toLocaleString()}</Text>
+                  </View>
               )}
 
               {/* Fallback for unexpected data structure or if main fields are missing */}
               {Object.keys(userData).length > 0 && !userData.id && !userData.clerk_id && !userData.created_at &&
-                Object.entries(userData).map(([key, value]) => (
-                  <View key={key} style={styles.dataRow}>
-                    <Text style={styles.dataLabel}>{key}:</Text>
-                    <Text style={styles.dataValue}>
-                      {typeof value === 'object' ? JSON.stringify(value) : String(value)}
-                    </Text>
-                  </View>
-              ))}
+                  Object.entries(userData).map(([key, value]) => (
+                      <View key={key} style={styles.dataRow}>
+                        <Text style={styles.dataLabel}>{key}:</Text>
+                        <Text style={styles.dataValue}>
+                          {typeof value === 'object' ? JSON.stringify(value) : String(value)}
+                        </Text>
+                      </View>
+                  ))}
 
               {/* If userData is an empty object */}
               {Object.keys(userData).length === 0 && (
@@ -183,7 +183,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.md,
     width: '100%',
     padding: spacing.md,
-    backgroundColor: '#f7f7f7',
+    backgroundColor: colors.secondary, // Use secondary beige
     borderRadius: 8,
     borderWidth: 1,
     borderColor: colors.border,
@@ -199,5 +199,3 @@ const styles = StyleSheet.create({
     fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
   },
 });
-
-export default UserData;

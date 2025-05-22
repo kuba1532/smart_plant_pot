@@ -10,6 +10,7 @@ import { getDeviceTypeName } from '@/app/config/deviceTypeMappings';
 import { Button as CustomButton } from '@/app/components/Button'; // Renamed to avoid conflict if any
 import { Container } from '@/app/components/Container'; // Import Container for specific error/loading states
 
+
 interface Reading {
     device_id: number;
     time: string;
@@ -24,11 +25,11 @@ const screenWidth = Dimensions.get('window').width;
 // Chart configuration
 const chartConfig = {
     backgroundColor: colors.background,
-    backgroundGradientFrom: '#ffffff',
-    backgroundGradientTo: '#f7f7f7',
+    backgroundGradientFrom: colors.secondary, // Use a light beige from theme
+    backgroundGradientTo: colors.background, // Use main background beige
     decimalPlaces: 1,
-    color: (opacity = 1) => `rgba(50, 50, 50, ${opacity})`,
-    labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+    color: (opacity = 1) => `rgba(56, 102, 65, ${opacity})`, // Primary Dark Green
+    labelColor: (opacity = 1) => `${colors.textLight}`, // Lighter Brown/Warm Gray
     style: {
         borderRadius: borderRadius.md,
     },
@@ -134,7 +135,7 @@ export default function DeviceDetailsScreen() {
             setIsReadingsLoading(false);
             if (refreshing) setRefreshing(false);
         }
-    }, [device, refreshing, isLoading, error]); // api is unstable and should not be used as a dependency
+    }, [device, refreshing, isLoading, error]); // api is stable and should not be used as a dependency
 
     const onRefresh = useCallback(() => {
         console.log('DeviceDetailsScreen: onRefresh called.');
@@ -243,9 +244,9 @@ export default function DeviceDetailsScreen() {
         const chartData = {
             labels: labels,
             datasets: [
-                { data: chartReadings.map(r => r.temperature), color: (opacity = 1) => `rgba(235, 64, 52, ${opacity})`, strokeWidth: 2, legend: "Temp (°C)" },
-                { data: chartReadings.map(r => r.humidity), color: (opacity = 1) => `rgba(52, 152, 219, ${opacity})`, strokeWidth: 2, legend: "Humidity (%)" },
-                { data: chartReadings.map(r => r.light_intensity), color: (opacity = 1) => `rgba(241, 196, 15, ${opacity})`, strokeWidth: 2, legend: "Light" },
+                { data: chartReadings.map(r => r.temperature), color: (opacity = 1) => `rgba(204, 102, 51, ${opacity})`, strokeWidth: 2, legend: "Temp (°C)" }, // Warm Orange/Brown
+                { data: chartReadings.map(r => r.humidity), color: (opacity = 1) => `rgba(60, 124, 138, ${opacity})`, strokeWidth: 2, legend: "Humidity (%)" }, // Muted Teal/Blue
+                { data: chartReadings.map(r => r.light_intensity), color: (opacity = 1) => `rgba(220, 175, 60, ${opacity})`, strokeWidth: 2, legend: "Light" },  // Warm Gold/Yellow
             ],
             legend: ['Temp (°C)', 'Humidity (%)', 'Light'],
         };
@@ -361,7 +362,7 @@ const styles = StyleSheet.create({
     },
     sectionContainer: {
         marginBottom: spacing.lg,
-        backgroundColor: colors.background,
+        backgroundColor: colors.secondary, // Use secondary beige for sections
         borderRadius: borderRadius.lg,
         padding: spacing.md,
         borderWidth: 1,
@@ -382,7 +383,7 @@ const styles = StyleSheet.create({
         borderBottomColor: colors.border,
     },
     infoCard: {
-        // Styles for the card holding rows
+// Styles for the card holding rows
     },
     infoRow: {
         flexDirection: 'row',
@@ -390,7 +391,7 @@ const styles = StyleSheet.create({
         alignItems: 'flex-start',
         paddingVertical: spacing.sm,
         borderBottomWidth: 1,
-        borderBottomColor: colors.textLight,
+        borderBottomColor: colors.border, // Use theme border color
     },
     infoLabel: {
         fontSize: fontSizes.body,
@@ -410,7 +411,7 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         marginVertical: spacing.md,
         padding: spacing.md,
-        backgroundColor: '#ffebee',
+        backgroundColor: '#FADBD8', // Light warm pink/beige for error background
         borderRadius: borderRadius.sm,
         fontSize: fontSizes.body,
     },
@@ -434,13 +435,13 @@ const styles = StyleSheet.create({
         bottom: 0,
         left: 0,
         right: 0,
-        paddingHorizontal: spacing.lg,
-        paddingTop: spacing.md,
-        paddingBottom: Platform.OS === 'ios' ? spacing.xl : spacing.lg, // For home indicator
+        paddingHorizontal: spacing.xl,
+        paddingTop: spacing.md, // Consistent small top padding for button bar
+        paddingBottom: Platform.OS === 'ios' ? spacing.sl : spacing.xxl, // For home indicator
         backgroundColor: colors.background, // Or a slightly different shade for emphasis
         borderTopWidth: 1,
         borderTopColor: colors.border,
-        // Optional shadow for more "floating" effect
+// Optional shadow for more "floating" effect
         shadowColor: "#000",
         shadowOffset: {
             width: 0,

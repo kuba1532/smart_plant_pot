@@ -17,5 +17,3 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
   },
 })
-
-export default Container;

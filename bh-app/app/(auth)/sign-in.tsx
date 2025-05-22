@@ -39,50 +39,51 @@ export default function Page() {
   }
 
   return (
-    <Container style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Welcome Back</Text>
-        <Text style={styles.subtitle}>Sign in to your account</Text>
-      </View>
+      <Container style={styles.container}>
+        <View style={styles.header}>
+          <Text style={styles.title}>Welcome Back!</Text>
+          <Text style={styles.subtitle}>Please sign in to continue</Text>
+        </View>
 
-      {error ? <Text style={styles.errorText}>{error}</Text> : null}
+        {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
-      <View style={styles.form}>
-        <Input
-          label="Email"
-          value={emailAddress}
-          placeholder="Enter your email"
-          onChangeText={setEmailAddress}
-        />
-        
-        <Input
-          label="Password"
-          value={password}
-          placeholder="Enter your password"
-          secureTextEntry={true}
-          onChangeText={setPassword}
-        />
-        
-        <Button
-          title="Sign In"
-          onPress={onSignInPress}
-          fullWidth
-        />
-      </View>
+        <View style={styles.form}>
+          <Input
+              label="Email"
+              value={emailAddress}
+              placeholder="Enter your email"
+              onChangeText={setEmailAddress}
+          />
 
-      <View style={styles.footer}>
-        <Text style={styles.footerText}>Don't have an account?</Text>
-        <Link href="/sign-up" asChild>
-          <Text style={styles.link}>Sign up</Text>
-        </Link>
-      </View>
-    </Container>
+          <Input
+              label="Password"
+              value={password}
+              placeholder="Enter your password"
+              secureTextEntry={true}
+              onChangeText={setPassword}
+          />
+
+          <Button
+              title="Sign In"
+              onPress={onSignInPress}
+              fullWidth
+          />
+        </View>
+
+        <View style={styles.footer}>
+          <Text style={styles.footerText}>Don't have an account?</Text>
+          <Link href="/sign-up" asChild>
+            <Text style={styles.link}>Sign up</Text>
+          </Link>
+        </View>
+      </Container>
   )
 }
 
 const styles = StyleSheet.create({
   container: {
     justifyContent: 'center',
+    alignItems: 'center',
   },
   header: {
     marginBottom: spacing.xl,
@@ -92,7 +93,7 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     color: colors.text,
-    marginBottom: spacing.xs,
+    marginBottom: spacing.sm,
   },
   subtitle: {
     fontSize: 16,
@@ -101,6 +102,7 @@ const styles = StyleSheet.create({
   form: {
     width: '100%',
     marginBottom: spacing.xl,
+    maxWidth: 400, // Optional: constrain form width on larger screens
   },
   footer: {
     flexDirection: 'row',
@@ -113,7 +115,7 @@ const styles = StyleSheet.create({
   },
   link: {
     color: colors.primary,
-    fontWeight: '500',
+    fontWeight: 'bold',
   },
   errorText: {
     color: colors.error,

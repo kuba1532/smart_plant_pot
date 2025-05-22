@@ -6,7 +6,8 @@ export interface DeviceTypeInfo {
 }
 
 export const deviceTypeMappings: Record<string, DeviceTypeInfo> = {
-    "rx": { name: "Rauni X1" }
+    "rx": { name: "Rauni X1" },
+    // Add other device types here as needed
 };
 
 export const getDeviceTypeName = (typeCode: string): string => {

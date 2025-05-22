@@ -89,6 +89,8 @@ def is_matching_role(user, required_role):
                 user_role = user.metadata.role
             else:
                 user_role = "user"
+        print("user role " + user_role)
+        print("required role " + required_role)
 
     except (KeyError, TypeError, AttributeError):
         # If we can't extract a role, default to non-matching

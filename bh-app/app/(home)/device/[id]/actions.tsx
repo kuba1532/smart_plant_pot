@@ -287,6 +287,7 @@ const styles = StyleSheet.create({
     scrollContainer: {
         padding: spacing.lg,
         paddingBottom: spacing.xxl,
+        backgroundColor: colors.background,
     },
     deviceInfoContainer: {
         marginBottom: spacing.lg,
@@ -304,7 +305,7 @@ const styles = StyleSheet.create({
     formSection: {
         marginBottom: spacing.xl,
         padding: spacing.md,
-        backgroundColor: colors.background,
+        backgroundColor: colors.secondary,
         borderRadius: borderRadius.lg,
         borderWidth: 1,
         borderColor: colors.border,
@@ -351,7 +352,7 @@ const styles = StyleSheet.create({
         borderRadius: borderRadius.md,
         paddingHorizontal: spacing.md,
         paddingVertical: spacing.md,
-        backgroundColor: colors.background,
+        backgroundColor: colors.background, // Keep input field background light
         justifyContent: 'center',
     },
     timeInputText: {
