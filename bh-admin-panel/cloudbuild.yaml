@@ -1,8 +1,15 @@
 # This cloudbuild.yaml is specific to the bh-admin-panel frontend
 steps:
   # 1. Build the Docker image
-  # The Docker build arguments (ARG) will pick up these environment variables.
   - name: 'gcr.io/cloud-builders/docker'
+    # The `dir` property tells Cloud Build to execute this specific step
+    # from within the 'bh-admin-panel' subdirectory of the checked-out source.
+    # This is crucial if your trigger is at the root of 'iotProject'.
+    # If your trigger is set up to ONLY consider the 'bh-admin-panel' directory
+    # as its root (e.g., through "Included files filter" or if your repo source
+    # in the trigger points directly to a 'bh-admin-panel' mirror),
+    # then 'dir' might be redundant, but it's safer to include.
+    dir: 'bh-admin-panel'  # <--- ADD THIS OR ENSURE IT'S CORRECT
     args:
       - 'build'
       - '--build-arg'
@@ -19,17 +26,23 @@ steps:
       - 'NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=${_NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL}'
       - '-t'
       - '${_AR_HOSTNAME}/${PROJECT_ID}/${_AR_REPOSITORY}/${_SERVICE_NAME}:${COMMIT_SHA}'
+      # Since 'dir: bh-admin-panel' sets the working directory for this step,
+      # Dockerfile path is now relative to bh-admin-panel.
       - '-f'
-      - 'Dockerfile'
+      - 'Dockerfile' # This should now correctly resolve to /workspace/bh-admin-panel/Dockerfile
+      # The build context '.' is also now /workspace/bh-admin-panel
       - '.'
     id: 'Build Docker Image'
 
   # 2. Push the Docker image to Artifact Registry
+  # No 'dir' needed here as it operates on the image name, not file paths.
   - name: 'gcr.io/cloud-builders/docker'
     args: ['push', '${_AR_HOSTNAME}/${PROJECT_ID}/${_AR_REPOSITORY}/${_SERVICE_NAME}:${COMMIT_SHA}']
     id: 'Push Docker Image'
 
   # 3. Deploy to Cloud Run
+  # The 'gcloud run deploy' command takes an image URL, so 'dir' is usually not critical here
+  # unless it needs to read some local configuration file for deployment (not the case here).
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: gcloud
     args:
@@ -41,11 +54,6 @@ steps:
       - '--platform=managed'
       - '--quiet'
       - '--allow-unauthenticated'
-      # Set runtime environment variables for Cloud Run.
-      # CLERK_SECRET_KEY is sensitive and fetched from Secret Manager.
-      # NEXT_PUBLIC_ variables are already baked into the client-side JS during build.
-      # However, ClerkProvider and other server-side Next.js logic (App Router)
-      # also need access to these NEXT_PUBLIC_ variables at runtime on the server.
       - '--set-env-vars=CLERK_SECRET_KEY=$$CLERK_SECRET_KEY_CONTENT,NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${_NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY},NEXT_PUBLIC_CLERK_SIGN_IN_URL=${_NEXT_PUBLIC_CLERK_SIGN_IN_URL},NEXT_PUBLIC_CLERK_SIGN_UP_URL=${_NEXT_PUBLIC_CLERK_SIGN_UP_URL},NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=${_NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL},NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=${_NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL},NEXT_PUBLIC_API_URL=${_NEXT_PUBLIC_API_URL}'
     id: 'Deploy to Cloud Run'
     secretEnv: ['CLERK_SECRET_KEY_CONTENT']
@@ -55,27 +63,20 @@ images:
 
 availableSecrets:
   secretManager:
-  - versionName: projects/$PROJECT_ID/secrets/CLERK_SECRET_KEY/versions/latest # Or a specific version number
+  - versionName: projects/$PROJECT_ID/secrets/CLERK_SECRET_KEY/versions/latest
     env: 'CLERK_SECRET_KEY_CONTENT'
 
-# Default substitution values (can be overridden by trigger)
-# These keys should now exactly match your .env.local (for NEXT_PUBLIC ones)
-# and how they are referenced in the build args and deploy env vars.
-# **IMPORTANT**: Update these default values here to reflect your .env.local,
-# AND MORE IMPORTANTLY, override them with *actual production values* in your Cloud Build Trigger settings.
 substitutions:
   _SERVICE_NAME: 'bh-admin-panel'
-  _REGION: 'us-central1' # Change to your preferred region
-  _AR_HOSTNAME: 'us-central1-docker.pkg.dev' # Change if your AR region is different
-  _AR_REPOSITORY: 'iot-app-images' # Choose a name for your AR repository
-
-  # --- VALUES FROM YOUR .env.local (use these as reference for trigger settings) ---
+  _REGION: 'us-central1'
+  _AR_HOSTNAME: 'us-central1-docker.pkg.dev'
+  _AR_REPOSITORY: 'iot-app-images'
   _NEXT_PUBLIC_API_URL: 'https://user-server-bh-168223699989.us-central1.run.app'
   _NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: 'pk_test_Y2xlYXItZm93bC0wLmNsZXJrLmFjY291bnRzLmRldiQ'
   _NEXT_PUBLIC_CLERK_SIGN_IN_URL: '/sign-in'
   _NEXT_PUBLIC_CLERK_SIGN_UP_URL: '/sign-up'
   _NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL: '/'
-  _NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL: '/' # From your .env.local
+  _NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL: '/'
 
 options:
   logging: CLOUD_LOGGING_ONLY
