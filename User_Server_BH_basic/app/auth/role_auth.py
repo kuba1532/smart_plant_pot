@@ -1,111 +1,82 @@
-from fastapi import HTTPException
+from fastapi import HTTPException, Depends
 
-def authorize_role(user, required_role):
+
+# Assuming you are using something like fastapi-clerk-auth
+# from fastapi_clerk_auth import ClerkHTTPBearer, HTTPAuthorizationCredentials
+# auth_guard = ClerkHTTPBearer()
+
+def get_user_roles_from_clerk_jwt(decoded_token: dict) -> list[str]:
     """
-    Authorize a user based on their role in the JWT token.
-
-    Args:
-        user: The User object or decoded JWT token payload
-        required_role: The role required to access the resource
-
-    Raises:
-        HTTPException: If the user doesn't have the required role
+    Extracts roles from a decoded Clerk JWT.
+    Assumes roles are stored in a 'roles' claim as a list of strings.
+    Modify if your Clerk setup stores roles differently (e.g., public_metadata).
     """
-    try:
-        # Check if user is a dictionary (JWT payload)
-        if isinstance(user, dict):
-            # First check if public_metadata exists in the token with a valid role
-            if ('public_metadata' in user and
-                'role' in user['public_metadata'] and
-                user['public_metadata']['role']):
-                user_role = user['public_metadata']['role']
-            # Next check if metadata exists with a valid role
-            elif ('metadata' in user and
-                  'role' in user['metadata'] and
-                  user['metadata']['role']):
-                user_role = user['metadata']['role']
-            else:
-                # If no valid role is found, set a default
-                print("debug1")
-                user_role = "user"
-        # Check if user is a User object
-        else:
-            # Try to access attributes instead of using bracket notation
-            if hasattr(user, 'public_metadata') and hasattr(user.public_metadata, 'role') and user.public_metadata.role:
-                user_role = user.public_metadata.role
-            elif hasattr(user, 'metadata') and hasattr(user.metadata, 'role') and user.metadata.role:
-                user_role = user.metadata.role
-            elif hasattr(user, 'public_metadata') and isinstance(user.public_metadata, dict) and user.public_metadata['role']:
-                    user_role = user.public_metadata['role']
-            elif hasattr(user, 'metadata') and isinstance(user.metadata, dict) and user.metadata['role']:
-                    user_role = user.metadata['role']
-            else:
-                print("debug2")
-                user_role = "user"
+    # Option 1: Roles directly in a 'roles' claim (common)
+    if "roles" in decoded_token and isinstance(decoded_token["roles"], list):
+        return decoded_token["roles"]
 
-    except (KeyError, TypeError, AttributeError) as e:
+    # Option 2: Role in public_metadata (as per your original code)
+    if ('public_metadata' in decoded_token and
+            isinstance(decoded_token['public_metadata'], dict) and
+            'role' in decoded_token['public_metadata'] and
+            decoded_token['public_metadata']['role']):
+        # If it's a single role string, return it as a list
+        return [decoded_token['public_metadata']['role']]
+
+    # Option 3: Role in metadata (as per your original code)
+    if ('metadata' in decoded_token and
+            isinstance(decoded_token['metadata'], dict) and
+            'role' in decoded_token['metadata'] and
+            decoded_token['metadata']['role']):
+        # If it's a single role string, return it as a list
+        return [decoded_token['metadata']['role']]
+
+    return []  # Default to no roles if not found
+
+
+def authorize_role(decoded_token: dict, required_role: str):
+    """
+    Authorize based on roles in a decoded Clerk JWT.
+    """
+    user_roles = get_user_roles_from_clerk_jwt(decoded_token)
+
+    if not user_roles and required_role is not None:  # Or handle default "user" role if you prefer
+        # If you have a default role for users without explicit roles
+        # if required_role == "user": return True
         raise HTTPException(
             status_code=403,
-            detail=f"Cannot extract role from token: {str(e)}"
+            detail=f"User has no roles assigned. Required role: {required_role}"
         )
 
-    # Check if the user has the required role
-    if required_role != user_role:
+    if required_role not in user_roles:
         raise HTTPException(
             status_code=403,
-            detail=f"Access denied. Required role: {required_role}, User role: {user_role}"
+            detail=f"Access denied. Required role: {required_role}, User roles: {user_roles}"
         )
-
-    # If we get here, the user is authorized
     return True
 
-def is_matching_role(user, required_role):
+
+def is_matching_role(decoded_token: dict, required_role: str) -> bool:
     """
-    Check if user has the required role without raising an exception.
-
-    Args:
-        user: The User object or decoded JWT token payload
-        required_role: The role required to access the resource
-
-    Returns:
-        bool: True if the user has the required role, False otherwise
+    Check if user has the required role from a decoded Clerk JWT.
     """
-    try:
-        # Check if user is a dictionary (JWT payload)
-        if isinstance(user, dict):
-            # First check if public_metadata exists in the token with a valid role
-            if ('public_metadata' in user and
-                'role' in user['public_metadata'] and
-                user['public_metadata']['role']):
-                user_role = user['public_metadata']['role']
-            # Next check if metadata exists with a valid role
-            elif ('metadata' in user and
-                  'role' in user['metadata'] and
-                  user['metadata']['role']):
-                user_role = user['metadata']['role']
-            else:
-                # If no valid role is found, set a default
-                print("debug1")
-                user_role = "user"
-        # Check if user is a User object
-        # Try to access attributes instead of using bracket notation
-        if hasattr(user, 'public_metadata') and hasattr(user.public_metadata, 'role') and user.public_metadata.role:
-            user_role = user.public_metadata.role
-        elif hasattr(user, 'metadata') and hasattr(user.metadata, 'role') and user.metadata.role:
-            user_role = user.metadata.role
-        elif hasattr(user, 'public_metadata') and isinstance(user.public_metadata, dict) and user.public_metadata['role']:
-            user_role = user.public_metadata['role']
-        elif hasattr(user, 'metadata') and isinstance(user.metadata, dict) and user.metadata['role']:
-            user_role = user.metadata['role']
-        else:
-            print("debug2")
-            user_role = "user"
-        print("user role " + user_role)
-        print("required role " + required_role)
+    user_roles = get_user_roles_from_clerk_jwt(decoded_token)
 
-    except (KeyError, TypeError, AttributeError):
-        # If we can't extract a role, default to non-matching
+    if not user_roles and required_role is not None:
+        # if required_role == "user": return True # For default role
         return False
 
-    # Check if the user has the required role
-    return required_role == user_role
+    return required_role in user_roles
+
+# Example usage in a FastAPI route (if using a library like fastapi-clerk-auth)
+# @app.get("/admin-only")
+# async def admin_only_route(credentials: HTTPAuthorizationCredentials = Depends(auth_guard)):
+#     authorize_role_clerk(credentials.decoded, "admin")
+#     return {"message": "Admin access granted"}
+
+# @app.get("/check-editor")
+# async def check_editor_route(credentials: HTTPAuthorizationCredentials = Depends(auth_guard)):
+#     can_edit = is_matching_role_clerk(credentials.decoded, "editor")
+#     if can_edit:
+#         return {"message": "User is an editor." }
+#     return {"message": "User is not an editor."}
