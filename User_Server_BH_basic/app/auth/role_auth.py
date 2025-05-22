@@ -26,6 +26,7 @@ def authorize_role(user, required_role):
                 user_role = user['metadata']['role']
             else:
                 # If no valid role is found, set a default
+                print("debug1")
                 user_role = "user"
         # Check if user is a User object
         else:
@@ -35,6 +36,7 @@ def authorize_role(user, required_role):
             elif hasattr(user, 'metadata') and hasattr(user.metadata, 'role') and user.metadata.role:
                 user_role = user.metadata.role
             else:
+                print("debug2")
                 user_role = "user"
 
     except (KeyError, TypeError, AttributeError) as e:
@@ -79,6 +81,7 @@ def is_matching_role(user, required_role):
                 user_role = user['metadata']['role']
             else:
                 # If no valid role is found, set a default
+                print("debug1")
                 user_role = "user"
         # Check if user is a User object
         else:
@@ -88,6 +91,7 @@ def is_matching_role(user, required_role):
             elif hasattr(user, 'metadata') and hasattr(user.metadata, 'role') and user.metadata.role:
                 user_role = user.metadata.role
             else:
+                print("debug2")
                 user_role = "user"
         print("user role " + user_role)
         print("required role " + required_role)
