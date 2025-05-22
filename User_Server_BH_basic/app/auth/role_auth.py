@@ -1,5 +1,6 @@
 from fastapi import HTTPException
 
+
 def authorize_role(user, required_role):
     """
     Authorize a user based on their role in the JWT token.
@@ -16,8 +17,8 @@ def authorize_role(user, required_role):
         if isinstance(user, dict):
             # First check if public_metadata exists in the token with a valid role
             if ('public_metadata' in user and
-                'role' in user['public_metadata'] and
-                user['public_metadata']['role']):
+                    'role' in user['public_metadata'] and
+                    user['public_metadata']['role']):
                 user_role = user['public_metadata']['role']
             # Next check if metadata exists with a valid role
             elif ('metadata' in user and
@@ -28,14 +29,15 @@ def authorize_role(user, required_role):
                 # If no valid role is found, set a default
                 print("debug1")
                 user_role = "user"
-        # Check if user is a User object
         else:
+            # Check if user is a User object
             # Try to access attributes instead of using bracket notation
             if hasattr(user, 'public_metadata') and hasattr(user.public_metadata, 'role') and user.public_metadata.role:
                 user_role = user.public_metadata.role
             elif hasattr(user, 'metadata') and hasattr(user.metadata, 'role') and user.metadata.role:
                 user_role = user.metadata.role
-            elif hasattr(user, 'public_metadata') and isinstance(user.public_metadata, dict) and user.public_metadata['role']:
+            elif hasattr(user, 'public_metadata') and isinstance(user.public_metadata, dict) and user.public_metadata[
+                'role']:
                 user_role = user.public_metadata['role']
             elif hasattr(user, 'metadata') and isinstance(user.metadata, dict) and user.metadata['role']:
                 user_role = user.metadata['role']
@@ -59,6 +61,7 @@ def authorize_role(user, required_role):
     # If we get here, the user is authorized
     return True
 
+
 def is_matching_role(user, required_role):
     """
     Check if user has the required role without raising an exception.
@@ -75,8 +78,8 @@ def is_matching_role(user, required_role):
         if isinstance(user, dict):
             # First check if public_metadata exists in the token with a valid role
             if ('public_metadata' in user and
-                'role' in user['public_metadata'] and
-                user['public_metadata']['role']):
+                    'role' in user['public_metadata'] and
+                    user['public_metadata']['role']):
                 user_role = user['public_metadata']['role']
             # Next check if metadata exists with a valid role
             elif ('metadata' in user and
@@ -87,19 +90,22 @@ def is_matching_role(user, required_role):
                 # If no valid role is found, set a default
                 print("debug1")
                 user_role = "user"
-        # Check if user is a User object
-        # Try to access attributes instead of using bracket notation
-        if hasattr(user, 'public_metadata') and hasattr(user.public_metadata, 'role') and user.public_metadata.role:
-            user_role = user.public_metadata.role
-        elif hasattr(user, 'metadata') and hasattr(user.metadata, 'role') and user.metadata.role:
-            user_role = user.metadata.role
-        elif hasattr(user, 'public_metadata') and isinstance(user.public_metadata, dict) and user.public_metadata['role']:
-            user_role = user.public_metadata['role']
-        elif hasattr(user, 'metadata') and isinstance(user.metadata, dict) and user.metadata['role']:
-            user_role = user.metadata['role']
         else:
-            print("debug2")
-            user_role = "user"
+            # Check if user is a User object
+            # Try to access attributes instead of using bracket notation
+            if hasattr(user, 'public_metadata') and hasattr(user.public_metadata, 'role') and user.public_metadata.role:
+                user_role = user.public_metadata.role
+            elif hasattr(user, 'metadata') and hasattr(user.metadata, 'role') and user.metadata.role:
+                user_role = user.metadata.role
+            elif hasattr(user, 'public_metadata') and isinstance(user.public_metadata, dict) and user.public_metadata[
+                'role']:
+                user_role = user.public_metadata['role']
+            elif hasattr(user, 'metadata') and isinstance(user.metadata, dict) and user.metadata['role']:
+                user_role = user.metadata['role']
+            else:
+                print("debug2")
+                user_role = "user"
+
         print("user role " + user_role)
         print("required role " + required_role)
         print(user)
