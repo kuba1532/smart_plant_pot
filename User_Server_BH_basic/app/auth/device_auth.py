@@ -33,5 +33,5 @@ def authorize_device(user, id: int):
     if not any(device.id == id for device in users_devices) and not is_matching_role(user, "admin"):
         raise HTTPException(
             status_code=403,
-            detail=f"User does not have permission to access this device"
+            detail=f"User does not have permissions to access this device"
         )
