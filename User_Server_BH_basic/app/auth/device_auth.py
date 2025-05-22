@@ -14,14 +14,14 @@ def authorize_device(user, id: int):
             detail="Invalid authentication token or missing user identifier"
         ) from e
 
-    user = get_user_by_clerk_id(clerk_id)
-    if not user:
+    user_db = get_user_by_clerk_id(clerk_id)
+    if not user_db:
         raise HTTPException(
             status_code=404,
             detail=f"User does not exists"
         )
 
-    user_id = user.id
+    user_id = user_db.id
     users_devices = get_devices_by_owner_id(user_id)
 
     print("current_device_id: " + str(id))
