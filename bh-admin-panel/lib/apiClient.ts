@@ -7,18 +7,18 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
 if (!API_BASE_URL && process.env.NODE_ENV !== 'test') {
   console.warn(
-      "WARNING: NEXT_PUBLIC_API_URL is not set. API calls will likely fail. " +
-      "Please set this environment variable in your .env.local file (e.g., NEXT_PUBLIC_API_URL=http://your-backend-url.com)."
+    "WARNING: NEXT_PUBLIC_API_URL is not set. API calls will likely fail. " +
+    "Please set this environment variable in your .env.local file (e.g., NEXT_PUBLIC_API_URL=http://your-backend-url.com)."
   );
 }
 
 // Interface for the device structure returned by the API
 export interface Device {
-  id: string; // This is the database primary key for the device
-  unique_key: string; // This is the unique_key/hardware_id
+  id: string; // or number, depending on your db_id type
+  device_id: string;
   name: string;
   type_code: string;
-  owner_id: string;
+  owner_user_id: string;
   created_at: string;
   updated_at: string;
   // Add any other relevant fields from your DeviceResponse schema
@@ -30,14 +30,6 @@ export interface DeviceCreatePayload {
   name: string;
   type_code: string;
   // Add other required fields for DeviceCreate schema if any
-}
-
-// Interface for updating an existing device
-// Based on OpenAPI, name, type_code, and unique_key are updatable.
-export interface DeviceUpdatePayload {
-  name?: string;
-  type_code?: string;
-  unique_key?: string;
 }
 
 async function fetchFromApiClient(token: string, endpoint: string, options: RequestInit = {}): Promise<any> {
@@ -68,7 +60,7 @@ async function fetchFromApiClient(token: string, endpoint: string, options: Requ
   }
 
   if (!response.ok) {
-    const errorData = await response.json().catch(() => ({ detail: `API reques failed with status ${response.status}` }));
+    const errorData = await response.json().catch(() => ({ detail: `API request failed with status ${response.status}` }));
     const error = new Error(errorData.detail) as any;
     error.status = response.status;
     error.data = errorData;
@@ -82,22 +74,15 @@ async function fetchFromApiClient(token: string, endpoint: string, options: Requ
 }
 
 export const getDevices = (token: string): Promise<Device[]> =>
-    fetchFromApiClient(token, '/devices');
+  fetchFromApiClient(token, '/devices');
 
 export const registerDevice = (token: string, ownerId: number, deviceData: DeviceCreatePayload): Promise<Device> => // Assuming API returns the created device
-    fetchFromApiClient(token, `/devices?owner_id=${ownerId}`, {
-      method: 'POST',
-      body: JSON.stringify(deviceData),
-    });
+  fetchFromApiClient(token, `/devices?owner_id=${ownerId}`, {
+    method: 'POST',
+    body: JSON.stringify(deviceData),
+  });
 
 export const deregisterDevice = (token: string, deviceDbId: string): Promise<null> => // Assuming API returns 204 No Content
-    fetchFromApiClient(token, `/devices/${deviceDbId}`, {
-      method: 'DELETE',
-    });
-
-// New function to update a device
-export const updateDevice = (token: string, deviceDbId: string, payload: DeviceUpdatePayload): Promise<Device> =>
-    fetchFromApiClient(token, `/devices/${deviceDbId}`, {
-      method: 'PUT',
-      body: JSON.stringify(payload),
-    });
+  fetchFromApiClient(token, `/devices/${deviceDbId}`, {
+    method: 'DELETE',
+  });
