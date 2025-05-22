@@ -68,7 +68,7 @@ async function fetchFromApiClient(token: string, endpoint: string, options: Requ
   }
 
   if (!response.ok) {
-    const errorData = await response.json().catch(() => ({ detail: `API request failed with status ${response.status}` }));
+    const errorData = await response.json().catch(() => ({ detail: `API reques failed with status ${response.status}` }));
     const error = new Error(errorData.detail) as any;
     error.status = response.status;
     error.data = errorData;
