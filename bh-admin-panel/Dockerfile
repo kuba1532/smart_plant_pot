@@ -21,9 +21,19 @@ RUN \
 
 # 2. Rebuild the source code only when needed
 FROM node:18-slim AS builder
+# Install build dependencies in builder stage too
+RUN apt-get update && apt-get install -y \
+    python3 \
+    make \
+    g++ \
+    && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+
+# Force rebuild of lightningcss to ensure correct binary
+RUN npm rebuild lightningcss --verbose
 
 # Environment variables needed for the build (NEXT_PUBLIC_ vars)
 ARG NEXT_PUBLIC_API_URL
