@@ -1,0 +1,20 @@
+JAKO właściciel Rauni CHCIAŁBYM skonfigurować próg wilgotności, np. "jeśli wilgotność < 80%, to podlej" PO TO, ABY doniczka automatycznie dbała o nawodnienie rośliny.
+
+JAKO właściciel Rauni CHCIAŁBYM ustawić próg natężenia światła, np. "jeśli lux < 300, to włącz lampkę" PO TO, ABY zapewnić roślinie odpowiednie oświetlenie.
+
+JAKO właściciel Rauni CHCIAŁBYM móc ustawić warunki działania pompki i lampki na podstawie wielu parametrów (np. wilgotność i pora dnia) PO TO, ABY precyzyjnie dopasować pielęgnację do potrzeb rośliny.
+
+JAKO właściciel Rauni CHCIAŁBYM móc ręcznie uruchomić pompkę lub lampkę PO TO, ABY mieć bezpośrednią kontrolę nad ich działaniem.
+
+JAKO właściciel Rauni CHCIAŁBYM widzieć dane z termometru, higrometru i luxometru w czasie rzeczywistym PO TO, ABY świadomie podejmować decyzje o pielęgnacji rośliny.
+
+JAKO użytkownik Blooming Hand CHCIAŁBYM dodać nową doniczkę Rauni do mojego konta PO TO, ABY zarządzać kilkoma roślinami w jednej aplikacji.
+
+JAKO użytkownik Blooming Hand CHCIAŁBYM usunąć doniczkę Rauni z mojego konta PO TO, ABY utrzymać porządek w aplikacji.
+
+JAKO nowy użytkownik Blooming Hand CHCIAŁBYM się zarejestrować i zalogować PO TO, ABY mieć dostęp do funkcji zarządzania doniczką Rauni.
+
+JAKO administrator Blooming Hand CHCIAŁBYM mieć możliwość nadpisywania ustawień użytkownika PO TO, ABY przywrócić poprawne działanie doniczki w razie błędnej konfiguracji.
+
+JAKO administrator Blooming Hand CHCIAŁBYM zarządzać kontami użytkowników PO TO, ABY kontrolować dostęp i bezpieczeństwo systemu.
+

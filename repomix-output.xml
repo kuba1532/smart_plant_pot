@@ -18126,16 +18126,9 @@ steps:
       - '--allow-unauthenticated' # Adjust as needed (e.g., --no-allow-unauthenticated)
       - '--port'
       - '3000' # Port your Next.js app listens on (from bh-admin-panel/Dockerfile)
-      - '--set-env-vars'
-      # Runtime Environment Variables:
-      - 'CLERK_SECRET_KEY=${_CLERK_SECRET_KEY}' # CRITICAL: Provide this securely
-      - 'NEXT_PUBLIC_API_URL=${_NEXT_PUBLIC_API_URL}'
-      - 'NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${_NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}'
-      - 'NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in'
-      - 'NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up'
-      - 'NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=/'
-      - 'NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=/'
-      # Add any other runtime ENV VARS your server.js might need
+      - >- # Corrected format for --set-env-vars
+        --set-env-vars=CLERK_SECRET_KEY=${_CLERK_SECRET_KEY},NEXT_PUBLIC_API_URL=${_NEXT_PUBLIC_API_URL},NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${_NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY},NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in,NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up,NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=/,NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=/
+      # Add any other runtime ENV VARS your server.js might need on new lines if needed, each starting with --update-env-vars or --set-env-vars for subsequent changes
     id: 'Deploy Admin Panel to Cloud Run'
     waitFor: ['Push Admin Panel Image (commit sha)', 'Push Admin Panel Image (latest)']
 
