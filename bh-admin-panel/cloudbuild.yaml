@@ -25,7 +25,7 @@ steps:
       - 'NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=/'
       - '--build-arg'
       - 'NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=/'
-      - '.' # Docker build context (current directory)
+      - 'bh-admin-panel' # Docker build context is now the bh-admin-panel subdirectory
     id: 'Build Docker Image'
     timeout: '1200s' # Optional: Increase timeout if build takes longer
 
