@@ -51,8 +51,8 @@ images:
 
 # Substitutions: These are variables you can override at build time or set as defaults.
 substitutions:
-  _REGION: 'us-central1'                 # Replace with your Artifact Registry region
-  _AR_REPOSITORY_NAME: 'my-nextjs-apps'  # Replace with your Artifact Registry repository name
+  _REGION: 'us'                 # Replace with your Artifact Registry region
+  _AR_REPOSITORY_NAME: 'gcr.io'  # Replace with your Artifact Registry repository name
   _IMAGE_NAME: 'bh-admin-panel'          # Replace with your desired image name
 
 # Options for the build
