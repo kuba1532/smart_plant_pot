@@ -1,5 +1,5 @@
 export const colors = {
-  primary: '#6A994E', // Warm Green
+  primary: '#6A995E', // Warm Green
   primaryLight: '#A7C957', // Lighter Warm Green
   primaryDark: '#386641', // Darker Warm Green
 
