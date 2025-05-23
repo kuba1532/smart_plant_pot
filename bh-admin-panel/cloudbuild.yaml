@@ -1,22 +1,18 @@
-# cloudbuild.yaml
+      
+# bh-admin-panel/cloudbuild.yaml
 steps:
   # Step 1: Build the Docker image
-  # This step uses the Docker builder to build your image.
-  # It tags the image with the Artifact Registry path and the commit SHA.
   - name: 'gcr.io/cloud-builders/docker'
     args:
       - 'build'
       - '--tag'
-      - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPOSITORY_NAME}/${_IMAGE_NAME}:$COMMIT_SHA'
+      - '${_AR_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO_NAME}/${_IMAGE_NAME}:$COMMIT_SHA'
       - '--tag'
-      - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPOSITORY_NAME}/${_IMAGE_NAME}:latest' # Optional: also tag as latest
-
-      # Pass build-time arguments defined in your Dockerfile
-      # IMPORTANT: Replace these with your actual values!
+      - '${_AR_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO_NAME}/${_IMAGE_NAME}:latest'
       - '--build-arg'
-      - 'NEXT_PUBLIC_API_URL=https://user-server-bh-168223699989.us-central1.run.app'
+      - 'NEXT_PUBLIC_API_URL=${_NEXT_PUBLIC_API_URL}'
       - '--build-arg'
-      - 'NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_Y2xlYXItZm93bC0wLmNsZXJrLmFjY291bnRzLmRldiQ'
+      - 'NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${_NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}'
       - '--build-arg'
       - 'NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in'
       - '--build-arg'
@@ -25,37 +21,72 @@ steps:
       - 'NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=/'
       - '--build-arg'
       - 'NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=/'
-      - 'bh-admin-panel' # Docker build context is now the bh-admin-panel subdirectory
-    id: 'Build Docker Image'
-    timeout: '1200s' # Optional: Increase timeout if build takes longer
+      - 'bh-admin-panel' # Correct Docker build context for this sub-project
+    id: 'Build Admin Panel Image'
+    timeout: '1200s'
 
   # Step 2: Push the Docker image to Artifact Registry
-  # This step pushes the tagged image to your Artifact Registry repository.
   - name: 'gcr.io/cloud-builders/docker'
     args:
       - 'push'
-      - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPOSITORY_NAME}/${_IMAGE_NAME}:$COMMIT_SHA'
-    id: 'Push Image to Artifact Registry (commit sha)'
+      - '${_AR_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO_NAME}/${_IMAGE_NAME}:$COMMIT_SHA'
+    id: 'Push Admin Panel Image (commit sha)'
+    waitFor: ['Build Admin Panel Image']
 
   - name: 'gcr.io/cloud-builders/docker'
     args:
       - 'push'
-      - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPOSITORY_NAME}/${_IMAGE_NAME}:latest' # Optional: push latest tag
-    id: 'Push Image to Artifact Registry (latest)'
+      - '${_AR_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO_NAME}/${_IMAGE_NAME}:latest'
+    id: 'Push Admin Panel Image (latest)'
+    waitFor: ['Build Admin Panel Image']
 
-# Specify the images to be built and pushed.
-# This is important for Cloud Build to know what artifacts were produced.
+  # Step 3: Deploy Admin Panel to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      - 'run'
+      - 'deploy'
+      - '${_SERVICE_NAME_ADMIN_PANEL}' # Name for your new Cloud Run service
+      - '--image'
+      - '${_AR_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO_NAME}/${_IMAGE_NAME}:$COMMIT_SHA'
+      - '--region'
+      - '${_CLOUD_RUN_REGION}'
+      - '--platform'
+      - 'managed'
+      - '--allow-unauthenticated' # Adjust as needed (e.g., --no-allow-unauthenticated)
+      - '--port'
+      - '3000' # Port your Next.js app listens on (from bh-admin-panel/Dockerfile)
+      - '--set-env-vars'
+      # Runtime Environment Variables:
+      - 'CLERK_SECRET_KEY=${_CLERK_SECRET_KEY}' # CRITICAL: Provide this securely
+      - 'NEXT_PUBLIC_API_URL=${_NEXT_PUBLIC_API_URL}'
+      - 'NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${_NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}'
+      - 'NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in'
+      - 'NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up'
+      - 'NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=/'
+      - 'NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=/'
+      # Add any other runtime ENV VARS your server.js might need
+    id: 'Deploy Admin Panel to Cloud Run'
+    waitFor: ['Push Admin Panel Image (commit sha)', 'Push Admin Panel Image (latest)']
+
 images:
-  - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPOSITORY_NAME}/${_IMAGE_NAME}:$COMMIT_SHA'
-  - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPOSITORY_NAME}/${_IMAGE_NAME}:latest' # Optional: if you pushed latest
+  - '${_AR_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO_NAME}/${_IMAGE_NAME}:$COMMIT_SHA'
+  - '${_AR_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO_NAME}/${_IMAGE_NAME}:latest'
 
-# Substitutions: These are variables you can override at build time or set as defaults.
 substitutions:
-  _REGION: 'us'                 # Replace with your Artifact Registry region
-  _AR_REPOSITORY_NAME: 'gcr.io'  # Replace with your Artifact Registry repository name
-  _IMAGE_NAME: 'bh-admin-panel'          # Replace with your desired image name
+  _AR_REGION: 'us-central1' # e.g., 'us-central1' for single region, or 'us' for multi-region Artifact Registry
+  _AR_REPO_NAME: 'your-artifact-registry-repo-name' # *** REPLACE THIS with your actual Artifact Registry repository name ***
+  _IMAGE_NAME: 'bh-admin-panel'
+  _CLOUD_RUN_REGION: 'us-central1' # Specific region for Cloud Run service
+  _SERVICE_NAME_ADMIN_PANEL: 'bh-admin-panel-frontend' # Choose a unique name for this Cloud Run service
 
-# Options for the build
+  # Build-time and Runtime values (can be overridden by trigger settings)
+  _NEXT_PUBLIC_API_URL: 'https://user-server-bh-168223699989.us-central1.run.app'
+  _NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: 'pk_test_Y2xlYXItZm93bC0wLmNsZXJrLmFjY291bnRzLmRldiQ'
+  _CLERK_SECRET_KEY: 'YOUR_CLERK_SECRET_KEY_GOES_HERE' # *** IMPORTANT: REPLACE or set via trigger/Secret Manager ***
+
 options:
-  logging: CLOUD_LOGGING_ONLY # Store logs in Cloud Logging
-  # machineType: 'E2_HIGHCPU_8' # Optional: Specify a more powerful machine type if needed
+  logging: CLOUD_LOGGING_ONLY
+  # machineType: 'E2_HIGHCPU_8' # Optional
+
+    
