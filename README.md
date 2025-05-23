@@ -155,7 +155,7 @@ export const API_BASE_URL = "<User Server URL>";
 ## VI. 📲 Mobile App Setup
 
 ```bash
-cd mobile-app
+cd bh-app
 # Ensure correct .env values and API URL
 npx expo start
 ```
