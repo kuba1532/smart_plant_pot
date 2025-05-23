@@ -6803,1131 +6803,6 @@ const nextConfig: NextConfig = {
 export default nextConfig;
 </file>
 
-<file path="bh-admin-panel/repomix-output.xml">
-This file is a merged representation of the entire codebase, combined into a single document by Repomix.
-
-<file_summary>
-This section contains a summary of this file.
-
-<purpose>
-This file contains a packed representation of the entire repository's contents.
-It is designed to be easily consumable by AI systems for analysis, code review,
-or other automated processes.
-</purpose>
-
-<file_format>
-The content is organized as follows:
-1. This summary section
-2. Repository information
-3. Directory structure
-4. Repository files (if enabled)
-5. Multiple file entries, each consisting of:
-  - File path as an attribute
-  - Full contents of the file
-</file_format>
-
-<usage_guidelines>
-- This file should be treated as read-only. Any changes should be made to the
-  original repository files, not this packed version.
-- When processing this file, use the file path to distinguish
-  between different files in the repository.
-- Be aware that this file may contain sensitive information. Handle it with
-  the same level of security as you would the original repository.
-</usage_guidelines>
-
-<notes>
-- Some files may have been excluded based on .gitignore rules and Repomix's configuration
-- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
-- Files matching patterns in .gitignore are excluded
-- Files matching default ignore patterns are excluded
-- Files are sorted by Git change count (files with more changes are at the bottom)
-</notes>
-
-</file_summary>
-
-<directory_structure>
-.dockerignore
-.gitignore
-app/globals.css
-app/layout.tsx
-app/page.tsx
-app/sign-in/[[...sign-in]]/page.tsx
-app/sign-up/[[...sign-up]]/page.tsx
-cloudbuild.yaml
-Dockerfile
-eslint.config.mjs
-lib/apiClient.ts
-middleware.ts
-next.config.ts
-package.json
-postcss.config.mjs
-public/file.svg
-public/globe.svg
-public/next.svg
-public/vercel.svg
-public/window.svg
-README.md
-tsconfig.json
-</directory_structure>
-
-<files>
-This section contains the contents of the repository's files.
-
-<file path=".dockerignore">
-Dockerfile
-.dockerignore
-node_modules
-npm-debug.log
-yarn-debug.log
-yarn-error.log
-pnpm-debug.log
-.next
-.env
-.env*.local
-.env.development.local
-.env.test.local
-.env.production.local
-.git
-*.pem
-*.tsbuildinfo
-README.md
-# Add any other files or directories you don't want in your Docker image
-</file>
-
-<file path=".gitignore">
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
-
-# dependencies
-/node_modules
-/.pnp
-.pnp.*
-.yarn/*
-!.yarn/patches
-!.yarn/plugins
-!.yarn/releases
-!.yarn/versions
-
-# testing
-/coverage
-
-# next.js
-/.next/
-/out/
-
-# production
-/build
-
-# misc
-.DS_Store
-*.pem
-
-# debug
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-.pnpm-debug.log*
-
-# env files (can opt-in for committing if needed)
-.env*
-
-# vercel
-.vercel
-
-# typescript
-*.tsbuildinfo
-next-env.d.ts
-</file>
-
-<file path="app/globals.css">
-@import "tailwindcss";
-
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
-}
-</file>
-
-<file path="app/layout.tsx">
-import type { Metadata } from "next";
-import { Inter } from "next/font/google";
-import "./globals.css";
-import { ClerkProvider } from '@clerk/nextjs';
-
-const inter = Inter({ subsets: ["latin"] });
-
-export const metadata: Metadata = {
-  title: "BH Admin Panel",
-  description: "Admin panel for device management",
-};
-
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
-  return (
-    <ClerkProvider>
-      <html lang="en">
-        <body className={inter.className}>{children}</body>
-      </html>
-    </ClerkProvider>
-  );
-}
-</file>
-
-<file path="app/page.tsx">
-'use client';
-
-import { useEffect, useState, useCallback } from 'react';
-import { UserButton, useAuth } from '@clerk/nextjs';
-import { useRouter } from 'next/navigation';
-// Import API client functions and types from the new module
-import {
-  getDevices,
-  registerDevice,
-  deregisterDevice,
-  updateDevice, // Added
-  DeviceCreatePayload,
-  Device,
-  DeviceUpdatePayload // Added
-} from '../lib/apiClient';
-
-export default function AdminPage() {
-  const { isLoaded, isSignedIn, getToken } = useAuth();
-  const router = useRouter();
-
-  const [devices, setDevices] = useState<Device[]>([]);
-  const [isLoadingApi, setIsLoadingApi] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [apiError, setApiError] = useState<{ message: string, status: number | null } | null>(null);
-
-  // Form state for registering a new device
-  const [newDeviceName, setNewDeviceName] = useState('');
-  const [newDeviceUniqueKey, setNewDeviceUniqueKey] = useState('');
-  const [newDeviceType, setNewDeviceType] = useState('');
-  const [newDeviceUserId, setNewDeviceUserId] = useState(-1);
-
-  // State for editing a device
-  const [editingDevice, setEditingDevice] = useState<Device | null>(null);
-  const [editDeviceName, setEditDeviceName] = useState('');
-  const [editDeviceTypeCode, setEditDeviceTypeCode] = useState('');
-  const [editDeviceUniqueKey, setEditDeviceUniqueKey] = useState('');
-
-  const fetchDevices = useCallback(async () => {
-    setIsLoadingApi(true);
-    setApiError(null);
-    setError(null);
-    try {
-      const token = await getToken();
-      if (!token) {
-        setError("Authentication token not available. Please sign in again.");
-        setIsLoadingApi(false);
-        return;
-      }
-      const data = await getDevices(token);
-      setDevices(data);
-    } catch (err: any) {
-      console.error("Error fetching devices:", err);
-      setError("Failed to fetch devices.");
-      if (err.status) {
-        setApiError({ message: err.message || `Error: ${err.status}`, status: err.status });
-      } else {
-        setApiError({ message: err.message || "An unknown error occurred", status: null });
-      }
-    } finally {
-      setIsLoadingApi(false);
-    }
-  }, [getToken]);
-
-  // Effect for redirection if not signed in
-  useEffect(() => {
-    if (isLoaded && !isSignedIn) {
-      router.push('/sign-in');
-    }
-  }, [isLoaded, isSignedIn, router]);
-
-  // Effect to fetch devices when authenticated and ready
-  useEffect(() => {
-    if (isLoaded && isSignedIn) {
-      fetchDevices();
-    }
-  }, [isLoaded, isSignedIn, fetchDevices]);
-
-  // Handle Clerk loading state: wait until Clerk has determined auth status
-  if (!isLoaded) {
-    return (
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-          Loading authentication status...
-        </div>
-    );
-  }
-
-  if (!isSignedIn) {
-    return (
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-          Redirecting to sign-in...
-        </div>
-    );
-  }
-
-  const handleRegisterDevice = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setApiError(null);
-    setError(null);
-    if (!newDeviceName || !newDeviceUniqueKey || !newDeviceType || newDeviceUserId < 0) {
-      setError("All fields (User ID, Unique Key, Name, Type) are required for registration.");
-      return;
-    }
-    try {
-      const token = await getToken();
-      if (!token) {
-        setError("Not authenticated. Please sign in again.");
-        return;
-      }
-      const payload: DeviceCreatePayload = {
-        unique_key: newDeviceUniqueKey,
-        name: newDeviceName,
-        type_code: newDeviceType,
-      };
-      await registerDevice(token, newDeviceUserId, payload);
-      setNewDeviceUniqueKey('');
-      setNewDeviceName('');
-      setNewDeviceType('');
-      setNewDeviceUserId(-1);
-      fetchDevices();
-    } catch (err: any) {
-      console.error("Error registering device:", err);
-      setError("Failed to register device.");
-      if (err.status) {
-        setApiError({ message: err.message || `Error: ${err.status}`, status: err.status });
-      } else {
-        setApiError({ message: err.message || "An unknown error occurred", status: null });
-      }
-    }
-  };
-
-  const handleDeregisterDevice = async (deviceDbId: string) => {
-    setApiError(null);
-    setError(null);
-    if (!confirm("Are you sure you want to deregister this device?")) {
-      return;
-    }
-    try {
-      const token = await getToken();
-      if (!token) {
-        setError("Not authenticated. Please sign in again.");
-        return;
-      }
-      await deregisterDevice(token, deviceDbId);
-      fetchDevices();
-    } catch (err: any) {
-      console.error("Error deregistering device:", err);
-      setError("Failed to deregister device.");
-      if (err.status) {
-        setApiError({ message: err.message || `Error: ${err.status}`, status: err.status });
-      } else {
-        setApiError({ message: err.message || "An unknown error occurred", status: null });
-      }
-    }
-  };
-
-  const handleStartEdit = (device: Device) => {
-    setEditingDevice(device);
-    setEditDeviceName(device.name);
-    setEditDeviceTypeCode(device.type_code);
-    setEditDeviceUniqueKey(device.unique_key);
-    setError(null); // Clear general errors when starting an edit
-    setApiError(null); // Clear API errors when starting an edit
-    // Scroll to the edit form
-    const editFormElement = document.getElementById('edit-device-form');
-    if (editFormElement) {
-      editFormElement.scrollIntoView({ behavior: 'smooth' });
-    }
-  };
-
-  const handleCancelEdit = () => {
-    setEditingDevice(null);
-    setEditDeviceName('');
-    setEditDeviceTypeCode('');
-    setEditDeviceUniqueKey('');
-  };
-
-  const handleUpdateDevice = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!editingDevice) return;
-
-    setApiError(null);
-    setError(null);
-
-    if (!editDeviceName.trim() || !editDeviceTypeCode.trim() || !editDeviceUniqueKey.trim()) {
-      setError("Device Name, Type Code, and Unique Key cannot be empty for an update.");
-      return;
-    }
-
-    try {
-      const token = await getToken();
-      if (!token) {
-        setError("Not authenticated. Please sign in again.");
-        return;
-      }
-      const payload: DeviceUpdatePayload = {
-        name: editDeviceName,
-        type_code: editDeviceTypeCode,
-        unique_key: editDeviceUniqueKey,
-      };
-      await updateDevice(token, editingDevice.id, payload);
-      fetchDevices();
-      handleCancelEdit(); // Reset form and editing state
-      // Optionally, show a success message: e.g., setError("Device updated successfully!"); but make it visually distinct
-    } catch (err: any) {
-      console.error("Error updating device:", err);
-      setError("Failed to update device.");
-      if (err.status) {
-        setApiError({ message: err.message || `Error: ${err.status}`, status: err.status });
-      } else {
-        setApiError({ message: err.message || "An unknown error occurred", status: null });
-      }
-    }
-  };
-
-  return (
-      <div className="container mx-auto p-4">
-        <header className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold">Device Management</h1>
-          <UserButton afterSignOutUrl="/sign-in" />
-        </header>
-
-        {apiError && (
-            <div
-                className={`p-4 mb-4 text-sm rounded-lg ${
-                    apiError.status === 403 ? 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300' :
-                        'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300'
-                }`}
-                role="alert"
-            >
-              <span className="font-medium">
-                {apiError.status === 403 ? "Access Denied: " : "API Error: "}
-              </span>
-              {apiError.message}
-              {apiError.status === 403 && <p className="mt-1 text-xs">You do not have permission to perform this action. Please contact an administrator if you believe this is an error.</p>}
-            </div>
-        )}
-        {error && !apiError && (
-            <p className="text-red-500 bg-red-100 p-3 rounded mb-4 dark:text-red-300 dark:bg-red-900">{error}</p>
-        )}
-
-        {/* Register New Device Form */}
-        {!editingDevice && ( // Hide register form when editing
-            <div className="mb-8 p-6 bg-white shadow-md rounded-lg dark:bg-gray-800">
-              <h2 className="text-2xl font-semibold mb-4 dark:text-white">Register New Device</h2>
-              <form onSubmit={handleRegisterDevice} className="space-y-4">
-                <div>
-                  <label htmlFor="deviceUserId" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Device User ID (Internal DB ID):</label>
-                  <input
-                      type="number"
-                      id="deviceUserId"
-                      value={newDeviceUserId === -1 ? '' : newDeviceUserId}
-                      onChange={(e) => setNewDeviceUserId(e.target.value === '' ? -1 : e.target.valueAsNumber)}
-                      className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:focus:ring-indigo-500 dark:focus:border-indigo-500"
-                      placeholder="Enter user ID (number)"
-                      required
-                  />
-                </div>
-                <div>
-                  <label htmlFor="deviceUniqueKey" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Device
-                    Unique Key (Hardware ID):</label>
-                  <input
-                      type="text"
-                      id="deviceUniqueKey"
-                      value={newDeviceUniqueKey}
-                      onChange={(e) => setNewDeviceUniqueKey(e.target.value)}
-                      className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:focus:ring-indigo-500 dark:focus:border-indigo-500"
-                      required
-                  />
-                </div>
-                <div>
-                  <label htmlFor="deviceName" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Device
-                    Name:</label>
-                  <input
-                      type="text"
-                      id="deviceName"
-                      value={newDeviceName}
-                      onChange={(e) => setNewDeviceName(e.target.value)}
-                      className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:focus:ring-indigo-500 dark:focus:border-indigo-500"
-                      required
-                  />
-                </div>
-                <div>
-                  <label htmlFor="deviceType" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Device
-                    Type Code:</label>
-                  <input
-                      type="text"
-                      id="deviceType"
-                      value={newDeviceType}
-                      onChange={(e) => setNewDeviceType(e.target.value)}
-                      className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:focus:ring-indigo-500 dark:focus:border-indigo-500"
-                      required
-                  />
-                </div>
-                <button
-                    type="submit"
-                    className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                >
-                  Register Device
-                </button>
-              </form>
-            </div>
-        )}
-
-        {/* Update Device Form */}
-        {editingDevice && (
-            <div id="edit-device-form" className="my-8 p-6 bg-yellow-50 shadow-md rounded-lg dark:bg-gray-700 border border-yellow-300 dark:border-yellow-600">
-              <h2 className="text-2xl font-semibold mb-4 dark:text-white">
-                Update Device: <span className="font-normal">{editingDevice.name} (HW ID: {editingDevice.unique_key}, DB ID: {editingDevice.id})</span>
-              </h2>
-              <form onSubmit={handleUpdateDevice} className="space-y-4">
-                <div>
-                  <label htmlFor="editDeviceUniqueKey" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Device Unique Key (Hardware ID):
-                  </label>
-                  <input
-                      type="text"
-                      id="editDeviceUniqueKey"
-                      value={editDeviceUniqueKey}
-                      onChange={(e) => setEditDeviceUniqueKey(e.target.value)}
-                      className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-600 dark:border-gray-500 dark:text-white"
-                      required
-                  />
-                </div>
-                <div>
-                  <label htmlFor="editDeviceName" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Device Name:
-                  </label>
-                  <input
-                      type="text"
-                      id="editDeviceName"
-                      value={editDeviceName}
-                      onChange={(e) => setEditDeviceName(e.target.value)}
-                      className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-600 dark:border-gray-500 dark:text-white"
-                      required
-                  />
-                </div>
-                <div>
-                  <label htmlFor="editDeviceTypeCode" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Device Type Code:
-                  </label>
-                  <input
-                      type="text"
-                      id="editDeviceTypeCode"
-                      value={editDeviceTypeCode}
-                      onChange={(e) => setEditDeviceTypeCode(e.target.value)}
-                      className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-600 dark:border-gray-500 dark:text-white"
-                      required
-                  />
-                </div>
-                <div className="flex space-x-3">
-                  <button
-                      type="submit"
-                      className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-yellow-600 hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500"
-                  >
-                    Save Changes
-                  </button>
-                  <button
-                      type="button"
-                      onClick={handleCancelEdit}
-                      className="inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:bg-gray-500 dark:text-gray-200 dark:hover:bg-gray-400 dark:border-gray-500"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </form>
-            </div>
-        )}
-
-        {/* Registered Devices Table */}
-        <div className="bg-white shadow-md rounded-lg overflow-hidden dark:bg-gray-800">
-          <h2 className="text-2xl font-semibold p-6 dark:text-white">Registered Devices</h2>
-          {isLoadingApi ? (
-              <p className="p-6 dark:text-gray-300">Loading devices...</p>
-          ) : devices.length === 0 && !error && !apiError ? (
-              <p className="p-6 dark:text-gray-300">No devices found.</p>
-          ) : (
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                  <thead className="bg-gray-50 dark:bg-gray-700">
-                  <tr>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">DB ID</th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">Unique Key (HW ID)</th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">Name</th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">Type</th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">Owner User ID</th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">Actions</th>
-                  </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200 dark:bg-gray-800 dark:divide-gray-700">
-                  {devices.map((device) => (
-                      <tr key={device.id}>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{device.id}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">{device.unique_key}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">{device.name}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">{device.type_code}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{device.owner_id}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                          <button
-                              onClick={() => handleStartEdit(device)}
-                              className="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 mr-3"
-                              disabled={!!editingDevice && editingDevice.id === device.id} // Disable if currently editing this device
-                          >
-                            Edit
-                          </button>
-                          <button
-                              onClick={() => handleDeregisterDevice(device.id)}
-                              className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
-                              disabled={!!editingDevice} // Disable deregister if any edit is in progress for safety
-                          >
-                            Deregister
-                          </button>
-                        </td>
-                      </tr>
-                  ))}
-                  </tbody>
-                </table>
-              </div>
-          )}
-        </div>
-      </div>
-  );
-}
-</file>
-
-<file path="app/sign-in/[[...sign-in]]/page.tsx">
-import { SignIn } from "@clerk/nextjs";
-
-export default function Page() {
-  return (
-    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-      <SignIn path="/sign-in" routing="path" />
-    </div>
-  );
-}
-</file>
-
-<file path="app/sign-up/[[...sign-up]]/page.tsx">
-import { SignUp } from "@clerk/nextjs";
-
-export default function Page() {
-  return (
-    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-      <SignUp path="/sign-up" routing="path" />
-    </div>
-  );
-}
-</file>
-
-<file path="cloudbuild.yaml">
-# cloudbuild.yaml
-steps:
-  # Step 1: Build the Docker image
-  # This step uses the Docker builder to build your image.
-  # It tags the image with the Artifact Registry path and the commit SHA.
-  - name: 'gcr.io/cloud-builders/docker'
-    args:
-      - 'build'
-      - '--tag'
-      - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPOSITORY_NAME}/${_IMAGE_NAME}:$COMMIT_SHA'
-      - '--tag'
-      - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPOSITORY_NAME}/${_IMAGE_NAME}:latest' # Optional: also tag as latest
-
-      # Pass build-time arguments defined in your Dockerfile
-      # IMPORTANT: Replace these with your actual values!
-      - '--build-arg'
-      - 'NEXT_PUBLIC_API_URL=https://user-server-bh-168223699989.us-central1.run.app'
-      - '--build-arg'
-      - 'NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_Y2xlYXItZm93bC0wLmNsZXJrLmFjY291bnRzLmRldiQ'
-      - '--build-arg'
-      - 'NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in'
-      - '--build-arg'
-      - 'NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up'
-      - '--build-arg'
-      - 'NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=/'
-      - '--build-arg'
-      - 'NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=/'
-      - '.' # Docker build context (current directory)
-    id: 'Build Docker Image'
-    timeout: '1200s' # Optional: Increase timeout if build takes longer
-
-  # Step 2: Push the Docker image to Artifact Registry
-  # This step pushes the tagged image to your Artifact Registry repository.
-  - name: 'gcr.io/cloud-builders/docker'
-    args:
-      - 'push'
-      - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPOSITORY_NAME}/${_IMAGE_NAME}:$COMMIT_SHA'
-    id: 'Push Image to Artifact Registry (commit sha)'
-
-  - name: 'gcr.io/cloud-builders/docker'
-    args:
-      - 'push'
-      - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPOSITORY_NAME}/${_IMAGE_NAME}:latest' # Optional: push latest tag
-    id: 'Push Image to Artifact Registry (latest)'
-
-# Specify the images to be built and pushed.
-# This is important for Cloud Build to know what artifacts were produced.
-images:
-  - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPOSITORY_NAME}/${_IMAGE_NAME}:$COMMIT_SHA'
-  - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPOSITORY_NAME}/${_IMAGE_NAME}:latest' # Optional: if you pushed latest
-
-# Substitutions: These are variables you can override at build time or set as defaults.
-substitutions:
-  _REGION: 'us-central1'                 # Replace with your Artifact Registry region
-  _AR_REPOSITORY_NAME: 'my-nextjs-apps'  # Replace with your Artifact Registry repository name
-  _IMAGE_NAME: 'bh-admin-panel'          # Replace with your desired image name
-
-# Options for the build
-options:
-  logging: CLOUD_LOGGING_ONLY # Store logs in Cloud Logging
-  # machineType: 'E2_HIGHCPU_8' # Optional: Specify a more powerful machine type if needed
-</file>
-
-<file path="Dockerfile">
-# ---- Base Node Stage ----
-    FROM node:20-alpine AS base
-    WORKDIR /app
-    ENV NEXT_TELEMETRY_DISABLED 1
-    
-    # ---- Dependencies Stage ----
-    FROM base AS deps
-    WORKDIR /app
-    
-    COPY package.json package-lock.json* ./
-    # If you use yarn, copy yarn.lock and use `RUN yarn install --frozen-lockfile`
-    # If you use pnpm, copy pnpm-lock.yaml and use `RUN pnpm install --frozen-lockfile`
-    RUN npm install --frozen-lockfile
-    
-    # ---- Builder Stage ----
-    FROM base AS builder
-    WORKDIR /app
-    
-    COPY --from=deps /app/node_modules ./node_modules
-    COPY . .
-    
-    # Build-time arguments for NEXT_PUBLIC_ variables
-    ARG NEXT_PUBLIC_API_URL
-    ARG NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
-    ARG NEXT_PUBLIC_CLERK_SIGN_IN_URL
-    ARG NEXT_PUBLIC_CLERK_SIGN_UP_URL
-    ARG NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL
-    ARG NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL
-    
-    # Set environment variables for the build process
-    ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
-    ENV NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
-    ENV NEXT_PUBLIC_CLERK_SIGN_IN_URL=${NEXT_PUBLIC_CLERK_SIGN_IN_URL}
-    ENV NEXT_PUBLIC_CLERK_SIGN_UP_URL=${NEXT_PUBLIC_CLERK_SIGN_UP_URL}
-    ENV NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=${NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL}
-    ENV NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=${NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL}
-    ENV NODE_ENV production
-    
-    RUN npm run build
-    
-    # ---- Runner Stage ----
-    FROM base AS runner
-    WORKDIR /app
-    
-    ENV NODE_ENV production
-    # Runtime Environment Variables (will be set by `docker run -e`)
-    # ENV CLERK_SECRET_KEY
-    # ENV NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
-    # ENV NEXT_PUBLIC_API_URL
-    # ENV NEXT_PUBLIC_CLERK_SIGN_IN_URL
-    # ENV NEXT_PUBLIC_CLERK_SIGN_UP_URL
-    # ENV NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL
-    # ENV NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL
-    
-    RUN addgroup --system --gid 1001 nodejs
-    RUN adduser --system --uid 1001 nextjs
-    
-    COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
-    COPY --from=builder --chown=nextjs:nodejs /app/public ./public
-    COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
-    
-    USER nextjs
-    EXPOSE 3000
-    ENV PORT 3000
-    
-    CMD ["node", "server.js"]
-</file>
-
-<file path="eslint.config.mjs">
-import { dirname } from "path";
-import { fileURLToPath } from "url";
-import { FlatCompat } from "@eslint/eslintrc";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-const compat = new FlatCompat({
-  baseDirectory: __dirname,
-});
-
-const eslintConfig = [
-  ...compat.extends("next/core-web-vitals", "next/typescript"),
-];
-
-export default eslintConfig;
-</file>
-
-<file path="lib/apiClient.ts">
-// lib/apiClient.ts
-
-// Use an environment variable for the base URL
-// Ensure you have NEXT_PUBLIC_API_URL set in your .env.local file
-// e.g., NEXT_PUBLIC_API_URL=http://localhost:8000
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
-
-if (!API_BASE_URL && process.env.NODE_ENV !== 'test') {
-  console.warn(
-    "WARNING: NEXT_PUBLIC_API_URL is not set. API calls will likely fail. " +
-    "Please set this environment variable in your .env.local file (e.g., NEXT_PUBLIC_API_URL=http://your-backend-url.com)."
-  );
-}
-
-// Interface for the device structure returned by the API
-export interface Device {
-  id: string; // This is the database primary key for the device
-  unique_key: string; // This is the unique_key/hardware_id
-  name: string;
-  type_code: string;
-  owner_id: string;
-  created_at: string;
-  updated_at: string;
-  // Add any other relevant fields from your DeviceResponse schema
-}
-
-// Interface for creating a new device
-export interface DeviceCreatePayload {
-  unique_key: string;
-  name: string;
-  type_code: string;
-  // Add other required fields for DeviceCreate schema if any
-}
-
-// Interface for updating an existing device
-// Based on OpenAPI, name, type_code, and unique_key are updatable.
-export interface DeviceUpdatePayload {
-  name?: string;
-  type_code?: string;
-  unique_key?: string;
-}
-
-async function fetchFromApiClient(token: string, endpoint: string, options: RequestInit = {}): Promise<any> {
-  const headers = new Headers(options.headers);
-  headers.append('Authorization', `Bearer ${token}`);
-  if (!(options.body instanceof FormData) && !headers.has('Content-Type')) {
-    headers.append('Content-Type', 'application/json');
-  }
-
-  const response = await fetch(`${API_BASE_URL || ''}${endpoint}`, { // Added || '' to prevent "undefined/devices" if URL is not set
-    ...options,
-    headers,
-  });
-
-  if (response.status === 403) {
-    const errorData = await response.json().catch(() => ({ detail: "Forbidden - You do not have permission to perform this action." }));
-    const error = new Error(errorData.detail) as any;
-    error.status = 403;
-    error.data = errorData;
-    throw error;
-  }
-  if (response.status === 401) {
-    const errorData = await response.json().catch(() => ({ detail: "Unauthorized - Please sign in again." }));
-    const error = new Error(errorData.detail) as any;
-    error.status = 401;
-    error.data = errorData;
-    throw error;
-  }
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({ detail: `API request failed with status ${response.status}` }));
-    const error = new Error(errorData.detail) as any;
-    error.status = response.status;
-    error.data = errorData;
-    throw error;
-  }
-
-  if (response.status === 204) { // No Content
-    return null;
-  }
-  return response.json();
-}
-
-export const getDevices = (token: string): Promise<Device[]> =>
-  fetchFromApiClient(token, '/devices');
-
-export const registerDevice = (token: string, ownerId: number, deviceData: DeviceCreatePayload): Promise<Device> => // Assuming API returns the created device
-  fetchFromApiClient(token, `/devices?owner_id=${ownerId}`, {
-    method: 'POST',
-    body: JSON.stringify(deviceData),
-  });
-
-export const deregisterDevice = (token: string, deviceDbId: string): Promise<null> => // Assuming API returns 204 No Content
-  fetchFromApiClient(token, `/devices/${deviceDbId}`, {
-    method: 'DELETE',
-  });
-
-// New function to update a device
-export const updateDevice = (token: string, deviceDbId: string, payload: DeviceUpdatePayload): Promise<Device> =>
-  fetchFromApiClient(token, `/devices/${deviceDbId}`, {
-    method: 'PUT',
-    body: JSON.stringify(payload),
-  });
-</file>
-
-<file path="middleware.ts">
-import { clerkMiddleware } from '@clerk/nextjs/server'
-
-export default clerkMiddleware()
-
-export const config = {
-  matcher: [
-    // Skip Next.js internals and all static files, unless found in search params
-    '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
-    // Always run for API routes
-    '/(api|trpc)(.*)',
-  ],
-}
-</file>
-
-<file path="next.config.ts">
-import type { NextConfig } from 'next';
-import type { Configuration as WebpackConfiguration, WebpackPluginInstance } from 'webpack'; // Import Webpack types
-
-const nextConfig: NextConfig = {
-  // Produces a standalone folder with only necessary files for deployment.
-  output: 'standalone',
-
-  // Includes .node files in the standalone output.
-  // This was moved out of the 'experimental' block.
-  outputFileTracingIncludes: {
-    '/': ['./node_modules/**/*.node'],
-  },
-
-  // Webpack configuration modifications.
-  webpack: (
-    config: WebpackConfiguration,
-    { isServer, webpack }: { isServer: boolean; webpack: any } // Added webpack to access its DefinePlugin if needed later
-  ): WebpackConfiguration => {
-    // Modify webpack config here
-
-    // Don't resolve Node.js core modules on the client-side.
-    // This prevents errors when libraries try to import them in a browser environment.
-    if (!isServer) {
-      config.resolve = {
-        ...config.resolve, // Preserve existing resolve options
-        fallback: {
-          ...(config.resolve?.fallback || {}), // Preserve existing fallbacks
-          fs: false,
-          path: false,
-          os: false,
-          // You might need to add more here depending on your dependencies
-          // e.g., crypto: false, stream: false, etc.
-        },
-      };
-    }
-
-    // Example: If you ever need to add a DefinePlugin
-    // config.plugins = config.plugins || [];
-    // config.plugins.push(
-    //   new webpack.DefinePlugin({
-    //     'process.env.SOME_CUSTOM_VAR': JSON.stringify('some_value'),
-    //   })
-    // );
-
-    return config;
-  },
-
-  // ESLint configuration.
-  eslint: {
-    // Warning: This allows production builds to successfully complete even if
-    // your project has ESLint errors. It's recommended to fix these errors.
-    ignoreDuringBuilds: true,
-  },
-
-  // TypeScript configuration.
-  // Uncomment the block below if you still have TypeScript errors from your
-  // application code (not from this config file itself) blocking the build.
-  // It's highly recommended to fix these type errors instead of ignoring them.
-  /*
-  typescript: {
-    // !! WARN !!
-    // Dangerously allow production builds to successfully complete even if
-    // your project has type errors.
-    // !! WARN !!
-    ignoreBuildErrors: true,
-  },
-  */
-
-  // If you had other experimental flags, they would go here,
-  // but outputFileTracingIncludes is no longer experimental.
-  // experimental: {
-  //   // otherExperimentalFlags: true,
-  // },
-};
-
-export default nextConfig;
-</file>
-
-<file path="package.json">
-{
-  "name": "bh-admin-panel",
-  "version": "0.1.0",
-  "private": true,
-  "scripts": {
-    "dev": "next dev --turbopack",
-    "build": "next build",
-    "start": "next start",
-    "lint": "next lint"
-  },
-  "dependencies": {
-    "@clerk/nextjs": "^6.20.0",
-    "next": "15.3.2",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0"
-  },
-  "devDependencies": {
-    "@eslint/eslintrc": "^3",
-    "@tailwindcss/postcss": "^4.1.7",
-    "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "@types/webpack": "^5.28.5",
-    "eslint": "^9",
-    "eslint-config-next": "15.3.2",
-    "tailwindcss": "^4",
-    "typescript": "^5"
-  }
-}
-</file>
-
-<file path="postcss.config.mjs">
-const config = {
-  plugins: ["@tailwindcss/postcss"],
-};
-
-export default config;
-</file>
-
-<file path="public/file.svg">
-<svg fill="none" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><path d="M14.5 13.5V5.41a1 1 0 0 0-.3-.7L9.8.29A1 1 0 0 0 9.08 0H1.5v13.5A2.5 2.5 0 0 0 4 16h8a2.5 2.5 0 0 0 2.5-2.5m-1.5 0v-7H8v-5H3v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1M9.5 5V2.12L12.38 5zM5.13 5h-.62v1.25h2.12V5zm-.62 3h7.12v1.25H4.5zm.62 3h-.62v1.25h7.12V11z" clip-rule="evenodd" fill="#666" fill-rule="evenodd"/></svg>
-</file>
-
-<file path="public/globe.svg">
-<svg fill="none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><g clip-path="url(#a)"><path fill-rule="evenodd" clip-rule="evenodd" d="M10.27 14.1a6.5 6.5 0 0 0 3.67-3.45q-1.24.21-2.7.34-.31 1.83-.97 3.1M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16m.48-1.52a7 7 0 0 1-.96 0H7.5a4 4 0 0 1-.84-1.32q-.38-.89-.63-2.08a40 40 0 0 0 3.92 0q-.25 1.2-.63 2.08a4 4 0 0 1-.84 1.31zm2.94-4.76q1.66-.15 2.95-.43a7 7 0 0 0 0-2.58q-1.3-.27-2.95-.43a18 18 0 0 1 0 3.44m-1.27-3.54a17 17 0 0 1 0 3.64 39 39 0 0 1-4.3 0 17 17 0 0 1 0-3.64 39 39 0 0 1 4.3 0m1.1-1.17q1.45.13 2.69.34a6.5 6.5 0 0 0-3.67-3.44q.65 1.26.98 3.1M8.48 1.5l.01.02q.41.37.84 1.31.38.89.63 2.08a40 40 0 0 0-3.92 0q.25-1.2.63-2.08a4 4 0 0 1 .85-1.32 7 7 0 0 1 .96 0m-2.75.4a6.5 6.5 0 0 0-3.67 3.44 29 29 0 0 1 2.7-.34q.31-1.83.97-3.1M4.58 6.28q-1.66.16-2.95.43a7 7 0 0 0 0 2.58q1.3.27 2.95.43a18 18 0 0 1 0-3.44m.17 4.71q-1.45-.12-2.69-.34a6.5 6.5 0 0 0 3.67 3.44q-.65-1.27-.98-3.1" fill="#666"/></g><defs><clipPath id="a"><path fill="#fff" d="M0 0h16v16H0z"/></clipPath></defs></svg>
-</file>
-
-<file path="public/next.svg">
-<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 394 80"><path fill="#000" d="M262 0h68.5v12.7h-27.2v66.6h-13.6V12.7H262V0ZM149 0v12.7H94v20.4h44.3v12.6H94v21h55v12.6H80.5V0h68.7zm34.3 0h-17.8l63.8 79.4h17.9l-32-39.7 32-39.6h-17.9l-23 28.6-23-28.6zm18.3 56.7-9-11-27.1 33.7h17.8l18.3-22.7z"/><path fill="#000" d="M81 79.3 17 0H0v79.3h13.6V17l50.2 62.3H81Zm252.6-.4c-1 0-1.8-.4-2.5-1s-1.1-1.6-1.1-2.6.3-1.8 1-2.5 1.6-1 2.6-1 1.8.3 2.5 1a3.4 3.4 0 0 1 .6 4.3 3.7 3.7 0 0 1-3 1.8zm23.2-33.5h6v23.3c0 2.1-.4 4-1.3 5.5a9.1 9.1 0 0 1-3.8 3.5c-1.6.8-3.5 1.3-5.7 1.3-2 0-3.7-.4-5.3-1s-2.8-1.8-3.7-3.2c-.9-1.3-1.4-3-1.4-5h6c.1.8.3 1.6.7 2.2s1 1.2 1.6 1.5c.7.4 1.5.5 2.4.5 1 0 1.8-.2 2.4-.6a4 4 0 0 0 1.6-1.8c.3-.8.5-1.8.5-3V45.5zm30.9 9.1a4.4 4.4 0 0 0-2-3.3 7.5 7.5 0 0 0-4.3-1.1c-1.3 0-2.4.2-3.3.5-.9.4-1.6 1-2 1.6a3.5 3.5 0 0 0-.3 4c.3.5.7.9 1.3 1.2l1.8 1 2 .5 3.2.8c1.3.3 2.5.7 3.7 1.2a13 13 0 0 1 3.2 1.8 8.1 8.1 0 0 1 3 6.5c0 2-.5 3.7-1.5 5.1a10 10 0 0 1-4.4 3.5c-1.8.8-4.1 1.2-6.8 1.2-2.6 0-4.9-.4-6.8-1.2-2-.8-3.4-2-4.5-3.5a10 10 0 0 1-1.7-5.6h6a5 5 0 0 0 3.5 4.6c1 .4 2.2.6 3.4.6 1.3 0 2.5-.2 3.5-.6 1-.4 1.8-1 2.4-1.7a4 4 0 0 0 .8-2.4c0-.9-.2-1.6-.7-2.2a11 11 0 0 0-2.1-1.4l-3.2-1-3.8-1c-2.8-.7-5-1.7-6.6-3.2a7.2 7.2 0 0 1-2.4-5.7 8 8 0 0 1 1.7-5 10 10 0 0 1 4.3-3.5c2-.8 4-1.2 6.4-1.2 2.3 0 4.4.4 6.2 1.2 1.8.8 3.2 2 4.3 3.4 1 1.4 1.5 3 1.5 5h-5.8z"/></svg>
-</file>
-
-<file path="public/vercel.svg">
-<svg fill="none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1155 1000"><path d="m577.3 0 577.4 1000H0z" fill="#fff"/></svg>
-</file>
-
-<file path="public/window.svg">
-<svg fill="none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path fill-rule="evenodd" clip-rule="evenodd" d="M1.5 2.5h13v10a1 1 0 0 1-1 1h-11a1 1 0 0 1-1-1zM0 1h16v11.5a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 0 12.5zm3.75 4.5a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5M7 4.75a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0m1.75.75a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5" fill="#666"/></svg>
-</file>
-
-<file path="README.md">
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
-
-## Getting Started
-
-First, run the development server:
-
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
-</file>
-
-<file path="tsconfig.json">
-{
-  "compilerOptions": {
-    "target": "ES2017",
-    "lib": ["dom", "dom.iterable", "esnext"],
-    "allowJs": true,
-    "skipLibCheck": true,
-    "strict": true,
-    "noEmit": true,
-    "esModuleInterop": true,
-    "module": "esnext",
-    "moduleResolution": "bundler",
-    "resolveJsonModule": true,
-    "isolatedModules": true,
-    "jsx": "preserve",
-    "incremental": true,
-    "plugins": [
-      {
-        "name": "next"
-      }
-    ],
-    "paths": {
-      "@/*": ["./*"]
-    }
-  },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules"]
-}
-</file>
-
-</files>
-</file>
-
 <file path="bh-app/app/_layout.tsx">
 // app/_layout.tsx
 import { ClerkProvider } from '@clerk/clerk-expo'
@@ -15059,6 +13934,1131 @@ README.md
 }
 </file>
 
+<file path="bh-admin-panel/repomix-output.xml">
+This file is a merged representation of the entire codebase, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+5. Multiple file entries, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+</file_summary>
+
+<directory_structure>
+.dockerignore
+.gitignore
+app/globals.css
+app/layout.tsx
+app/page.tsx
+app/sign-in/[[...sign-in]]/page.tsx
+app/sign-up/[[...sign-up]]/page.tsx
+cloudbuild.yaml
+Dockerfile
+eslint.config.mjs
+lib/apiClient.ts
+middleware.ts
+next.config.ts
+package.json
+postcss.config.mjs
+public/file.svg
+public/globe.svg
+public/next.svg
+public/vercel.svg
+public/window.svg
+README.md
+tsconfig.json
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path=".dockerignore">
+Dockerfile
+.dockerignore
+node_modules
+npm-debug.log
+yarn-debug.log
+yarn-error.log
+pnpm-debug.log
+.next
+.env
+.env*.local
+.env.development.local
+.env.test.local
+.env.production.local
+.git
+*.pem
+*.tsbuildinfo
+README.md
+# Add any other files or directories you don't want in your Docker image
+</file>
+
+<file path=".gitignore">
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# testing
+/coverage
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# env files (can opt-in for committing if needed)
+.env*
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+</file>
+
+<file path="app/globals.css">
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
+</file>
+
+<file path="app/layout.tsx">
+import type { Metadata } from "next";
+import { Inter } from "next/font/google";
+import "./globals.css";
+import { ClerkProvider } from '@clerk/nextjs';
+
+const inter = Inter({ subsets: ["latin"] });
+
+export const metadata: Metadata = {
+  title: "BH Admin Panel",
+  description: "Admin panel for device management",
+};
+
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  return (
+    <ClerkProvider>
+      <html lang="en">
+        <body className={inter.className}>{children}</body>
+      </html>
+    </ClerkProvider>
+  );
+}
+</file>
+
+<file path="app/page.tsx">
+'use client';
+
+import { useEffect, useState, useCallback } from 'react';
+import { UserButton, useAuth } from '@clerk/nextjs';
+import { useRouter } from 'next/navigation';
+// Import API client functions and types from the new module
+import {
+  getDevices,
+  registerDevice,
+  deregisterDevice,
+  updateDevice, // Added
+  DeviceCreatePayload,
+  Device,
+  DeviceUpdatePayload // Added
+} from '../lib/apiClient';
+
+export default function AdminPage() {
+  const { isLoaded, isSignedIn, getToken } = useAuth();
+  const router = useRouter();
+
+  const [devices, setDevices] = useState<Device[]>([]);
+  const [isLoadingApi, setIsLoadingApi] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [apiError, setApiError] = useState<{ message: string, status: number | null } | null>(null);
+
+  // Form state for registering a new device
+  const [newDeviceName, setNewDeviceName] = useState('');
+  const [newDeviceUniqueKey, setNewDeviceUniqueKey] = useState('');
+  const [newDeviceType, setNewDeviceType] = useState('');
+  const [newDeviceUserId, setNewDeviceUserId] = useState(-1);
+
+  // State for editing a device
+  const [editingDevice, setEditingDevice] = useState<Device | null>(null);
+  const [editDeviceName, setEditDeviceName] = useState('');
+  const [editDeviceTypeCode, setEditDeviceTypeCode] = useState('');
+  const [editDeviceUniqueKey, setEditDeviceUniqueKey] = useState('');
+
+  const fetchDevices = useCallback(async () => {
+    setIsLoadingApi(true);
+    setApiError(null);
+    setError(null);
+    try {
+      const token = await getToken();
+      if (!token) {
+        setError("Authentication token not available. Please sign in again.");
+        setIsLoadingApi(false);
+        return;
+      }
+      const data = await getDevices(token);
+      setDevices(data);
+    } catch (err: any) {
+      console.error("Error fetching devices:", err);
+      setError("Failed to fetch devices.");
+      if (err.status) {
+        setApiError({ message: err.message || `Error: ${err.status}`, status: err.status });
+      } else {
+        setApiError({ message: err.message || "An unknown error occurred", status: null });
+      }
+    } finally {
+      setIsLoadingApi(false);
+    }
+  }, [getToken]);
+
+  // Effect for redirection if not signed in
+  useEffect(() => {
+    if (isLoaded && !isSignedIn) {
+      router.push('/sign-in');
+    }
+  }, [isLoaded, isSignedIn, router]);
+
+  // Effect to fetch devices when authenticated and ready
+  useEffect(() => {
+    if (isLoaded && isSignedIn) {
+      fetchDevices();
+    }
+  }, [isLoaded, isSignedIn, fetchDevices]);
+
+  // Handle Clerk loading state: wait until Clerk has determined auth status
+  if (!isLoaded) {
+    return (
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+          Loading authentication status...
+        </div>
+    );
+  }
+
+  if (!isSignedIn) {
+    return (
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+          Redirecting to sign-in...
+        </div>
+    );
+  }
+
+  const handleRegisterDevice = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setApiError(null);
+    setError(null);
+    if (!newDeviceName || !newDeviceUniqueKey || !newDeviceType || newDeviceUserId < 0) {
+      setError("All fields (User ID, Unique Key, Name, Type) are required for registration.");
+      return;
+    }
+    try {
+      const token = await getToken();
+      if (!token) {
+        setError("Not authenticated. Please sign in again.");
+        return;
+      }
+      const payload: DeviceCreatePayload = {
+        unique_key: newDeviceUniqueKey,
+        name: newDeviceName,
+        type_code: newDeviceType,
+      };
+      await registerDevice(token, newDeviceUserId, payload);
+      setNewDeviceUniqueKey('');
+      setNewDeviceName('');
+      setNewDeviceType('');
+      setNewDeviceUserId(-1);
+      fetchDevices();
+    } catch (err: any) {
+      console.error("Error registering device:", err);
+      setError("Failed to register device.");
+      if (err.status) {
+        setApiError({ message: err.message || `Error: ${err.status}`, status: err.status });
+      } else {
+        setApiError({ message: err.message || "An unknown error occurred", status: null });
+      }
+    }
+  };
+
+  const handleDeregisterDevice = async (deviceDbId: string) => {
+    setApiError(null);
+    setError(null);
+    if (!confirm("Are you sure you want to deregister this device?")) {
+      return;
+    }
+    try {
+      const token = await getToken();
+      if (!token) {
+        setError("Not authenticated. Please sign in again.");
+        return;
+      }
+      await deregisterDevice(token, deviceDbId);
+      fetchDevices();
+    } catch (err: any) {
+      console.error("Error deregistering device:", err);
+      setError("Failed to deregister device.");
+      if (err.status) {
+        setApiError({ message: err.message || `Error: ${err.status}`, status: err.status });
+      } else {
+        setApiError({ message: err.message || "An unknown error occurred", status: null });
+      }
+    }
+  };
+
+  const handleStartEdit = (device: Device) => {
+    setEditingDevice(device);
+    setEditDeviceName(device.name);
+    setEditDeviceTypeCode(device.type_code);
+    setEditDeviceUniqueKey(device.unique_key);
+    setError(null); // Clear general errors when starting an edit
+    setApiError(null); // Clear API errors when starting an edit
+    // Scroll to the edit form
+    const editFormElement = document.getElementById('edit-device-form');
+    if (editFormElement) {
+      editFormElement.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingDevice(null);
+    setEditDeviceName('');
+    setEditDeviceTypeCode('');
+    setEditDeviceUniqueKey('');
+  };
+
+  const handleUpdateDevice = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingDevice) return;
+
+    setApiError(null);
+    setError(null);
+
+    if (!editDeviceName.trim() || !editDeviceTypeCode.trim() || !editDeviceUniqueKey.trim()) {
+      setError("Device Name, Type Code, and Unique Key cannot be empty for an update.");
+      return;
+    }
+
+    try {
+      const token = await getToken();
+      if (!token) {
+        setError("Not authenticated. Please sign in again.");
+        return;
+      }
+      const payload: DeviceUpdatePayload = {
+        name: editDeviceName,
+        type_code: editDeviceTypeCode,
+        unique_key: editDeviceUniqueKey,
+      };
+      await updateDevice(token, editingDevice.id, payload);
+      fetchDevices();
+      handleCancelEdit(); // Reset form and editing state
+      // Optionally, show a success message: e.g., setError("Device updated successfully!"); but make it visually distinct
+    } catch (err: any) {
+      console.error("Error updating device:", err);
+      setError("Failed to update device.");
+      if (err.status) {
+        setApiError({ message: err.message || `Error: ${err.status}`, status: err.status });
+      } else {
+        setApiError({ message: err.message || "An unknown error occurred", status: null });
+      }
+    }
+  };
+
+  return (
+      <div className="container mx-auto p-4">
+        <header className="flex justify-between items-center mb-6">
+          <h1 className="text-3xl font-bold">Device Management</h1>
+          <UserButton afterSignOutUrl="/sign-in" />
+        </header>
+
+        {apiError && (
+            <div
+                className={`p-4 mb-4 text-sm rounded-lg ${
+                    apiError.status === 403 ? 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300' :
+                        'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300'
+                }`}
+                role="alert"
+            >
+              <span className="font-medium">
+                {apiError.status === 403 ? "Access Denied: " : "API Error: "}
+              </span>
+              {apiError.message}
+              {apiError.status === 403 && <p className="mt-1 text-xs">You do not have permission to perform this action. Please contact an administrator if you believe this is an error.</p>}
+            </div>
+        )}
+        {error && !apiError && (
+            <p className="text-red-500 bg-red-100 p-3 rounded mb-4 dark:text-red-300 dark:bg-red-900">{error}</p>
+        )}
+
+        {/* Register New Device Form */}
+        {!editingDevice && ( // Hide register form when editing
+            <div className="mb-8 p-6 bg-white shadow-md rounded-lg dark:bg-gray-800">
+              <h2 className="text-2xl font-semibold mb-4 dark:text-white">Register New Device</h2>
+              <form onSubmit={handleRegisterDevice} className="space-y-4">
+                <div>
+                  <label htmlFor="deviceUserId" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Device User ID (Internal DB ID):</label>
+                  <input
+                      type="number"
+                      id="deviceUserId"
+                      value={newDeviceUserId === -1 ? '' : newDeviceUserId}
+                      onChange={(e) => setNewDeviceUserId(e.target.value === '' ? -1 : e.target.valueAsNumber)}
+                      className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:focus:ring-indigo-500 dark:focus:border-indigo-500"
+                      placeholder="Enter user ID (number)"
+                      required
+                  />
+                </div>
+                <div>
+                  <label htmlFor="deviceUniqueKey" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Device
+                    Unique Key (Hardware ID):</label>
+                  <input
+                      type="text"
+                      id="deviceUniqueKey"
+                      value={newDeviceUniqueKey}
+                      onChange={(e) => setNewDeviceUniqueKey(e.target.value)}
+                      className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:focus:ring-indigo-500 dark:focus:border-indigo-500"
+                      required
+                  />
+                </div>
+                <div>
+                  <label htmlFor="deviceName" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Device
+                    Name:</label>
+                  <input
+                      type="text"
+                      id="deviceName"
+                      value={newDeviceName}
+                      onChange={(e) => setNewDeviceName(e.target.value)}
+                      className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:focus:ring-indigo-500 dark:focus:border-indigo-500"
+                      required
+                  />
+                </div>
+                <div>
+                  <label htmlFor="deviceType" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Device
+                    Type Code:</label>
+                  <input
+                      type="text"
+                      id="deviceType"
+                      value={newDeviceType}
+                      onChange={(e) => setNewDeviceType(e.target.value)}
+                      className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:focus:ring-indigo-500 dark:focus:border-indigo-500"
+                      required
+                  />
+                </div>
+                <button
+                    type="submit"
+                    className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                >
+                  Register Device
+                </button>
+              </form>
+            </div>
+        )}
+
+        {/* Update Device Form */}
+        {editingDevice && (
+            <div id="edit-device-form" className="my-8 p-6 bg-yellow-50 shadow-md rounded-lg dark:bg-gray-700 border border-yellow-300 dark:border-yellow-600">
+              <h2 className="text-2xl font-semibold mb-4 dark:text-white">
+                Update Device: <span className="font-normal">{editingDevice.name} (HW ID: {editingDevice.unique_key}, DB ID: {editingDevice.id})</span>
+              </h2>
+              <form onSubmit={handleUpdateDevice} className="space-y-4">
+                <div>
+                  <label htmlFor="editDeviceUniqueKey" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Device Unique Key (Hardware ID):
+                  </label>
+                  <input
+                      type="text"
+                      id="editDeviceUniqueKey"
+                      value={editDeviceUniqueKey}
+                      onChange={(e) => setEditDeviceUniqueKey(e.target.value)}
+                      className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-600 dark:border-gray-500 dark:text-white"
+                      required
+                  />
+                </div>
+                <div>
+                  <label htmlFor="editDeviceName" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Device Name:
+                  </label>
+                  <input
+                      type="text"
+                      id="editDeviceName"
+                      value={editDeviceName}
+                      onChange={(e) => setEditDeviceName(e.target.value)}
+                      className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-600 dark:border-gray-500 dark:text-white"
+                      required
+                  />
+                </div>
+                <div>
+                  <label htmlFor="editDeviceTypeCode" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Device Type Code:
+                  </label>
+                  <input
+                      type="text"
+                      id="editDeviceTypeCode"
+                      value={editDeviceTypeCode}
+                      onChange={(e) => setEditDeviceTypeCode(e.target.value)}
+                      className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:bg-gray-600 dark:border-gray-500 dark:text-white"
+                      required
+                  />
+                </div>
+                <div className="flex space-x-3">
+                  <button
+                      type="submit"
+                      className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-yellow-600 hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500"
+                  >
+                    Save Changes
+                  </button>
+                  <button
+                      type="button"
+                      onClick={handleCancelEdit}
+                      className="inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:bg-gray-500 dark:text-gray-200 dark:hover:bg-gray-400 dark:border-gray-500"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            </div>
+        )}
+
+        {/* Registered Devices Table */}
+        <div className="bg-white shadow-md rounded-lg overflow-hidden dark:bg-gray-800">
+          <h2 className="text-2xl font-semibold p-6 dark:text-white">Registered Devices</h2>
+          {isLoadingApi ? (
+              <p className="p-6 dark:text-gray-300">Loading devices...</p>
+          ) : devices.length === 0 && !error && !apiError ? (
+              <p className="p-6 dark:text-gray-300">No devices found.</p>
+          ) : (
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                  <thead className="bg-gray-50 dark:bg-gray-700">
+                  <tr>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">DB ID</th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">Unique Key (HW ID)</th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">Name</th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">Type</th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">Owner User ID</th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-300">Actions</th>
+                  </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200 dark:bg-gray-800 dark:divide-gray-700">
+                  {devices.map((device) => (
+                      <tr key={device.id}>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{device.id}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">{device.unique_key}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">{device.name}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">{device.type_code}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{device.owner_id}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                          <button
+                              onClick={() => handleStartEdit(device)}
+                              className="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 mr-3"
+                              disabled={!!editingDevice && editingDevice.id === device.id} // Disable if currently editing this device
+                          >
+                            Edit
+                          </button>
+                          <button
+                              onClick={() => handleDeregisterDevice(device.id)}
+                              className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
+                              disabled={!!editingDevice} // Disable deregister if any edit is in progress for safety
+                          >
+                            Deregister
+                          </button>
+                        </td>
+                      </tr>
+                  ))}
+                  </tbody>
+                </table>
+              </div>
+          )}
+        </div>
+      </div>
+  );
+}
+</file>
+
+<file path="app/sign-in/[[...sign-in]]/page.tsx">
+import { SignIn } from "@clerk/nextjs";
+
+export default function Page() {
+  return (
+    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+      <SignIn path="/sign-in" routing="path" />
+    </div>
+  );
+}
+</file>
+
+<file path="app/sign-up/[[...sign-up]]/page.tsx">
+import { SignUp } from "@clerk/nextjs";
+
+export default function Page() {
+  return (
+    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+      <SignUp path="/sign-up" routing="path" />
+    </div>
+  );
+}
+</file>
+
+<file path="cloudbuild.yaml">
+# cloudbuild.yaml
+steps:
+  # Step 1: Build the Docker image
+  # This step uses the Docker builder to build your image.
+  # It tags the image with the Artifact Registry path and the commit SHA.
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '--tag'
+      - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPOSITORY_NAME}/${_IMAGE_NAME}:$COMMIT_SHA'
+      - '--tag'
+      - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPOSITORY_NAME}/${_IMAGE_NAME}:latest' # Optional: also tag as latest
+
+      # Pass build-time arguments defined in your Dockerfile
+      # IMPORTANT: Replace these with your actual values!
+      - '--build-arg'
+      - 'NEXT_PUBLIC_API_URL=https://user-server-bh-168223699989.us-central1.run.app'
+      - '--build-arg'
+      - 'NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_Y2xlYXItZm93bC0wLmNsZXJrLmFjY291bnRzLmRldiQ'
+      - '--build-arg'
+      - 'NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in'
+      - '--build-arg'
+      - 'NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up'
+      - '--build-arg'
+      - 'NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=/'
+      - '--build-arg'
+      - 'NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=/'
+      - '.' # Docker build context (current directory)
+    id: 'Build Docker Image'
+    timeout: '1200s' # Optional: Increase timeout if build takes longer
+
+  # Step 2: Push the Docker image to Artifact Registry
+  # This step pushes the tagged image to your Artifact Registry repository.
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPOSITORY_NAME}/${_IMAGE_NAME}:$COMMIT_SHA'
+    id: 'Push Image to Artifact Registry (commit sha)'
+
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPOSITORY_NAME}/${_IMAGE_NAME}:latest' # Optional: push latest tag
+    id: 'Push Image to Artifact Registry (latest)'
+
+# Specify the images to be built and pushed.
+# This is important for Cloud Build to know what artifacts were produced.
+images:
+  - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPOSITORY_NAME}/${_IMAGE_NAME}:$COMMIT_SHA'
+  - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPOSITORY_NAME}/${_IMAGE_NAME}:latest' # Optional: if you pushed latest
+
+# Substitutions: These are variables you can override at build time or set as defaults.
+substitutions:
+  _REGION: 'us-central1'                 # Replace with your Artifact Registry region
+  _AR_REPOSITORY_NAME: 'my-nextjs-apps'  # Replace with your Artifact Registry repository name
+  _IMAGE_NAME: 'bh-admin-panel'          # Replace with your desired image name
+
+# Options for the build
+options:
+  logging: CLOUD_LOGGING_ONLY # Store logs in Cloud Logging
+  # machineType: 'E2_HIGHCPU_8' # Optional: Specify a more powerful machine type if needed
+</file>
+
+<file path="Dockerfile">
+# ---- Base Node Stage ----
+    FROM node:20-alpine AS base
+    WORKDIR /app
+    ENV NEXT_TELEMETRY_DISABLED 1
+    
+    # ---- Dependencies Stage ----
+    FROM base AS deps
+    WORKDIR /app
+    
+    COPY package.json package-lock.json* ./
+    # If you use yarn, copy yarn.lock and use `RUN yarn install --frozen-lockfile`
+    # If you use pnpm, copy pnpm-lock.yaml and use `RUN pnpm install --frozen-lockfile`
+    RUN npm install --frozen-lockfile
+    
+    # ---- Builder Stage ----
+    FROM base AS builder
+    WORKDIR /app
+    
+    COPY --from=deps /app/node_modules ./node_modules
+    COPY . .
+    
+    # Build-time arguments for NEXT_PUBLIC_ variables
+    ARG NEXT_PUBLIC_API_URL
+    ARG NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+    ARG NEXT_PUBLIC_CLERK_SIGN_IN_URL
+    ARG NEXT_PUBLIC_CLERK_SIGN_UP_URL
+    ARG NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL
+    ARG NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL
+    
+    # Set environment variables for the build process
+    ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+    ENV NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
+    ENV NEXT_PUBLIC_CLERK_SIGN_IN_URL=${NEXT_PUBLIC_CLERK_SIGN_IN_URL}
+    ENV NEXT_PUBLIC_CLERK_SIGN_UP_URL=${NEXT_PUBLIC_CLERK_SIGN_UP_URL}
+    ENV NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=${NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL}
+    ENV NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=${NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL}
+    ENV NODE_ENV production
+    
+    RUN npm run build
+    
+    # ---- Runner Stage ----
+    FROM base AS runner
+    WORKDIR /app
+    
+    ENV NODE_ENV production
+    # Runtime Environment Variables (will be set by `docker run -e`)
+    # ENV CLERK_SECRET_KEY
+    # ENV NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+    # ENV NEXT_PUBLIC_API_URL
+    # ENV NEXT_PUBLIC_CLERK_SIGN_IN_URL
+    # ENV NEXT_PUBLIC_CLERK_SIGN_UP_URL
+    # ENV NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL
+    # ENV NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL
+    
+    RUN addgroup --system --gid 1001 nodejs
+    RUN adduser --system --uid 1001 nextjs
+    
+    COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+    COPY --from=builder --chown=nextjs:nodejs /app/public ./public
+    COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+    
+    USER nextjs
+    EXPOSE 3000
+    ENV PORT 3000
+    
+    CMD ["node", "server.js"]
+</file>
+
+<file path="eslint.config.mjs">
+import { dirname } from "path";
+import { fileURLToPath } from "url";
+import { FlatCompat } from "@eslint/eslintrc";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+const compat = new FlatCompat({
+  baseDirectory: __dirname,
+});
+
+const eslintConfig = [
+  ...compat.extends("next/core-web-vitals", "next/typescript"),
+];
+
+export default eslintConfig;
+</file>
+
+<file path="lib/apiClient.ts">
+// lib/apiClient.ts
+
+// Use an environment variable for the base URL
+// Ensure you have NEXT_PUBLIC_API_URL set in your .env.local file
+// e.g., NEXT_PUBLIC_API_URL=http://localhost:8000
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+
+if (!API_BASE_URL && process.env.NODE_ENV !== 'test') {
+  console.warn(
+    "WARNING: NEXT_PUBLIC_API_URL is not set. API calls will likely fail. " +
+    "Please set this environment variable in your .env.local file (e.g., NEXT_PUBLIC_API_URL=http://your-backend-url.com)."
+  );
+}
+
+// Interface for the device structure returned by the API
+export interface Device {
+  id: string; // This is the database primary key for the device
+  unique_key: string; // This is the unique_key/hardware_id
+  name: string;
+  type_code: string;
+  owner_id: string;
+  created_at: string;
+  updated_at: string;
+  // Add any other relevant fields from your DeviceResponse schema
+}
+
+// Interface for creating a new device
+export interface DeviceCreatePayload {
+  unique_key: string;
+  name: string;
+  type_code: string;
+  // Add other required fields for DeviceCreate schema if any
+}
+
+// Interface for updating an existing device
+// Based on OpenAPI, name, type_code, and unique_key are updatable.
+export interface DeviceUpdatePayload {
+  name?: string;
+  type_code?: string;
+  unique_key?: string;
+}
+
+async function fetchFromApiClient(token: string, endpoint: string, options: RequestInit = {}): Promise<any> {
+  const headers = new Headers(options.headers);
+  headers.append('Authorization', `Bearer ${token}`);
+  if (!(options.body instanceof FormData) && !headers.has('Content-Type')) {
+    headers.append('Content-Type', 'application/json');
+  }
+
+  const response = await fetch(`${API_BASE_URL || ''}${endpoint}`, { // Added || '' to prevent "undefined/devices" if URL is not set
+    ...options,
+    headers,
+  });
+
+  if (response.status === 403) {
+    const errorData = await response.json().catch(() => ({ detail: "Forbidden - You do not have permission to perform this action." }));
+    const error = new Error(errorData.detail) as any;
+    error.status = 403;
+    error.data = errorData;
+    throw error;
+  }
+  if (response.status === 401) {
+    const errorData = await response.json().catch(() => ({ detail: "Unauthorized - Please sign in again." }));
+    const error = new Error(errorData.detail) as any;
+    error.status = 401;
+    error.data = errorData;
+    throw error;
+  }
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({ detail: `API request failed with status ${response.status}` }));
+    const error = new Error(errorData.detail) as any;
+    error.status = response.status;
+    error.data = errorData;
+    throw error;
+  }
+
+  if (response.status === 204) { // No Content
+    return null;
+  }
+  return response.json();
+}
+
+export const getDevices = (token: string): Promise<Device[]> =>
+  fetchFromApiClient(token, '/devices');
+
+export const registerDevice = (token: string, ownerId: number, deviceData: DeviceCreatePayload): Promise<Device> => // Assuming API returns the created device
+  fetchFromApiClient(token, `/devices?owner_id=${ownerId}`, {
+    method: 'POST',
+    body: JSON.stringify(deviceData),
+  });
+
+export const deregisterDevice = (token: string, deviceDbId: string): Promise<null> => // Assuming API returns 204 No Content
+  fetchFromApiClient(token, `/devices/${deviceDbId}`, {
+    method: 'DELETE',
+  });
+
+// New function to update a device
+export const updateDevice = (token: string, deviceDbId: string, payload: DeviceUpdatePayload): Promise<Device> =>
+  fetchFromApiClient(token, `/devices/${deviceDbId}`, {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  });
+</file>
+
+<file path="middleware.ts">
+import { clerkMiddleware } from '@clerk/nextjs/server'
+
+export default clerkMiddleware()
+
+export const config = {
+  matcher: [
+    // Skip Next.js internals and all static files, unless found in search params
+    '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
+    // Always run for API routes
+    '/(api|trpc)(.*)',
+  ],
+}
+</file>
+
+<file path="next.config.ts">
+import type { NextConfig } from 'next';
+import type { Configuration as WebpackConfiguration, WebpackPluginInstance } from 'webpack'; // Import Webpack types
+
+const nextConfig: NextConfig = {
+  // Produces a standalone folder with only necessary files for deployment.
+  output: 'standalone',
+
+  // Includes .node files in the standalone output.
+  // This was moved out of the 'experimental' block.
+  outputFileTracingIncludes: {
+    '/': ['./node_modules/**/*.node'],
+  },
+
+  // Webpack configuration modifications.
+  webpack: (
+    config: WebpackConfiguration,
+    { isServer, webpack }: { isServer: boolean; webpack: any } // Added webpack to access its DefinePlugin if needed later
+  ): WebpackConfiguration => {
+    // Modify webpack config here
+
+    // Don't resolve Node.js core modules on the client-side.
+    // This prevents errors when libraries try to import them in a browser environment.
+    if (!isServer) {
+      config.resolve = {
+        ...config.resolve, // Preserve existing resolve options
+        fallback: {
+          ...(config.resolve?.fallback || {}), // Preserve existing fallbacks
+          fs: false,
+          path: false,
+          os: false,
+          // You might need to add more here depending on your dependencies
+          // e.g., crypto: false, stream: false, etc.
+        },
+      };
+    }
+
+    // Example: If you ever need to add a DefinePlugin
+    // config.plugins = config.plugins || [];
+    // config.plugins.push(
+    //   new webpack.DefinePlugin({
+    //     'process.env.SOME_CUSTOM_VAR': JSON.stringify('some_value'),
+    //   })
+    // );
+
+    return config;
+  },
+
+  // ESLint configuration.
+  eslint: {
+    // Warning: This allows production builds to successfully complete even if
+    // your project has ESLint errors. It's recommended to fix these errors.
+    ignoreDuringBuilds: true,
+  },
+
+  // TypeScript configuration.
+  // Uncomment the block below if you still have TypeScript errors from your
+  // application code (not from this config file itself) blocking the build.
+  // It's highly recommended to fix these type errors instead of ignoring them.
+  /*
+  typescript: {
+    // !! WARN !!
+    // Dangerously allow production builds to successfully complete even if
+    // your project has type errors.
+    // !! WARN !!
+    ignoreBuildErrors: true,
+  },
+  */
+
+  // If you had other experimental flags, they would go here,
+  // but outputFileTracingIncludes is no longer experimental.
+  // experimental: {
+  //   // otherExperimentalFlags: true,
+  // },
+};
+
+export default nextConfig;
+</file>
+
+<file path="package.json">
+{
+  "name": "bh-admin-panel",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --turbopack",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@clerk/nextjs": "^6.20.0",
+    "next": "15.3.2",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3",
+    "@tailwindcss/postcss": "^4.1.7",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@types/webpack": "^5.28.5",
+    "eslint": "^9",
+    "eslint-config-next": "15.3.2",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}
+</file>
+
+<file path="postcss.config.mjs">
+const config = {
+  plugins: ["@tailwindcss/postcss"],
+};
+
+export default config;
+</file>
+
+<file path="public/file.svg">
+<svg fill="none" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><path d="M14.5 13.5V5.41a1 1 0 0 0-.3-.7L9.8.29A1 1 0 0 0 9.08 0H1.5v13.5A2.5 2.5 0 0 0 4 16h8a2.5 2.5 0 0 0 2.5-2.5m-1.5 0v-7H8v-5H3v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1M9.5 5V2.12L12.38 5zM5.13 5h-.62v1.25h2.12V5zm-.62 3h7.12v1.25H4.5zm.62 3h-.62v1.25h7.12V11z" clip-rule="evenodd" fill="#666" fill-rule="evenodd"/></svg>
+</file>
+
+<file path="public/globe.svg">
+<svg fill="none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><g clip-path="url(#a)"><path fill-rule="evenodd" clip-rule="evenodd" d="M10.27 14.1a6.5 6.5 0 0 0 3.67-3.45q-1.24.21-2.7.34-.31 1.83-.97 3.1M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16m.48-1.52a7 7 0 0 1-.96 0H7.5a4 4 0 0 1-.84-1.32q-.38-.89-.63-2.08a40 40 0 0 0 3.92 0q-.25 1.2-.63 2.08a4 4 0 0 1-.84 1.31zm2.94-4.76q1.66-.15 2.95-.43a7 7 0 0 0 0-2.58q-1.3-.27-2.95-.43a18 18 0 0 1 0 3.44m-1.27-3.54a17 17 0 0 1 0 3.64 39 39 0 0 1-4.3 0 17 17 0 0 1 0-3.64 39 39 0 0 1 4.3 0m1.1-1.17q1.45.13 2.69.34a6.5 6.5 0 0 0-3.67-3.44q.65 1.26.98 3.1M8.48 1.5l.01.02q.41.37.84 1.31.38.89.63 2.08a40 40 0 0 0-3.92 0q.25-1.2.63-2.08a4 4 0 0 1 .85-1.32 7 7 0 0 1 .96 0m-2.75.4a6.5 6.5 0 0 0-3.67 3.44 29 29 0 0 1 2.7-.34q.31-1.83.97-3.1M4.58 6.28q-1.66.16-2.95.43a7 7 0 0 0 0 2.58q1.3.27 2.95.43a18 18 0 0 1 0-3.44m.17 4.71q-1.45-.12-2.69-.34a6.5 6.5 0 0 0 3.67 3.44q-.65-1.27-.98-3.1" fill="#666"/></g><defs><clipPath id="a"><path fill="#fff" d="M0 0h16v16H0z"/></clipPath></defs></svg>
+</file>
+
+<file path="public/next.svg">
+<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 394 80"><path fill="#000" d="M262 0h68.5v12.7h-27.2v66.6h-13.6V12.7H262V0ZM149 0v12.7H94v20.4h44.3v12.6H94v21h55v12.6H80.5V0h68.7zm34.3 0h-17.8l63.8 79.4h17.9l-32-39.7 32-39.6h-17.9l-23 28.6-23-28.6zm18.3 56.7-9-11-27.1 33.7h17.8l18.3-22.7z"/><path fill="#000" d="M81 79.3 17 0H0v79.3h13.6V17l50.2 62.3H81Zm252.6-.4c-1 0-1.8-.4-2.5-1s-1.1-1.6-1.1-2.6.3-1.8 1-2.5 1.6-1 2.6-1 1.8.3 2.5 1a3.4 3.4 0 0 1 .6 4.3 3.7 3.7 0 0 1-3 1.8zm23.2-33.5h6v23.3c0 2.1-.4 4-1.3 5.5a9.1 9.1 0 0 1-3.8 3.5c-1.6.8-3.5 1.3-5.7 1.3-2 0-3.7-.4-5.3-1s-2.8-1.8-3.7-3.2c-.9-1.3-1.4-3-1.4-5h6c.1.8.3 1.6.7 2.2s1 1.2 1.6 1.5c.7.4 1.5.5 2.4.5 1 0 1.8-.2 2.4-.6a4 4 0 0 0 1.6-1.8c.3-.8.5-1.8.5-3V45.5zm30.9 9.1a4.4 4.4 0 0 0-2-3.3 7.5 7.5 0 0 0-4.3-1.1c-1.3 0-2.4.2-3.3.5-.9.4-1.6 1-2 1.6a3.5 3.5 0 0 0-.3 4c.3.5.7.9 1.3 1.2l1.8 1 2 .5 3.2.8c1.3.3 2.5.7 3.7 1.2a13 13 0 0 1 3.2 1.8 8.1 8.1 0 0 1 3 6.5c0 2-.5 3.7-1.5 5.1a10 10 0 0 1-4.4 3.5c-1.8.8-4.1 1.2-6.8 1.2-2.6 0-4.9-.4-6.8-1.2-2-.8-3.4-2-4.5-3.5a10 10 0 0 1-1.7-5.6h6a5 5 0 0 0 3.5 4.6c1 .4 2.2.6 3.4.6 1.3 0 2.5-.2 3.5-.6 1-.4 1.8-1 2.4-1.7a4 4 0 0 0 .8-2.4c0-.9-.2-1.6-.7-2.2a11 11 0 0 0-2.1-1.4l-3.2-1-3.8-1c-2.8-.7-5-1.7-6.6-3.2a7.2 7.2 0 0 1-2.4-5.7 8 8 0 0 1 1.7-5 10 10 0 0 1 4.3-3.5c2-.8 4-1.2 6.4-1.2 2.3 0 4.4.4 6.2 1.2 1.8.8 3.2 2 4.3 3.4 1 1.4 1.5 3 1.5 5h-5.8z"/></svg>
+</file>
+
+<file path="public/vercel.svg">
+<svg fill="none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1155 1000"><path d="m577.3 0 577.4 1000H0z" fill="#fff"/></svg>
+</file>
+
+<file path="public/window.svg">
+<svg fill="none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path fill-rule="evenodd" clip-rule="evenodd" d="M1.5 2.5h13v10a1 1 0 0 1-1 1h-11a1 1 0 0 1-1-1zM0 1h16v11.5a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 0 12.5zm3.75 4.5a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5M7 4.75a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0m1.75.75a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5" fill="#666"/></svg>
+</file>
+
+<file path="README.md">
+This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+
+## Getting Started
+
+First, run the development server:
+
+```bash
+npm run dev
+# or
+yarn dev
+# or
+pnpm dev
+# or
+bun dev
+```
+
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+
+You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+
+This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+
+## Learn More
+
+To learn more about Next.js, take a look at the following resources:
+
+- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
+- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+
+You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+
+## Deploy on Vercel
+
+The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+
+Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+</file>
+
+<file path="tsconfig.json">
+{
+  "compilerOptions": {
+    "target": "ES2017",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "preserve",
+    "incremental": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "paths": {
+      "@/*": ["./*"]
+    }
+  },
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
+  "exclude": ["node_modules"]
+}
+</file>
+
+</files>
+</file>
+
 <file path="bh-app/app/components/Button.tsx">
 import { Text, TouchableOpacity, StyleSheet } from 'react-native'
 import { colors, spacing, borderRadius } from '../styles/theme'
@@ -16587,70 +16587,6 @@ export default function AdminPage() {
 }
 </file>
 
-<file path="bh-admin-panel/cloudbuild.yaml">
-# cloudbuild.yaml
-steps:
-  # Step 1: Build the Docker image
-  # This step uses the Docker builder to build your image.
-  # It tags the image with the Artifact Registry path and the commit SHA.
-  - name: 'gcr.io/cloud-builders/docker'
-    args:
-      - 'build'
-      - '--tag'
-      - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPOSITORY_NAME}/${_IMAGE_NAME}:$COMMIT_SHA'
-      - '--tag'
-      - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPOSITORY_NAME}/${_IMAGE_NAME}:latest' # Optional: also tag as latest
-
-      # Pass build-time arguments defined in your Dockerfile
-      # IMPORTANT: Replace these with your actual values!
-      - '--build-arg'
-      - 'NEXT_PUBLIC_API_URL=https://user-server-bh-168223699989.us-central1.run.app'
-      - '--build-arg'
-      - 'NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_Y2xlYXItZm93bC0wLmNsZXJrLmFjY291bnRzLmRldiQ'
-      - '--build-arg'
-      - 'NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in'
-      - '--build-arg'
-      - 'NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up'
-      - '--build-arg'
-      - 'NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=/'
-      - '--build-arg'
-      - 'NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=/'
-      - '.' # Docker build context (current directory)
-    id: 'Build Docker Image'
-    timeout: '1200s' # Optional: Increase timeout if build takes longer
-
-  # Step 2: Push the Docker image to Artifact Registry
-  # This step pushes the tagged image to your Artifact Registry repository.
-  - name: 'gcr.io/cloud-builders/docker'
-    args:
-      - 'push'
-      - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPOSITORY_NAME}/${_IMAGE_NAME}:$COMMIT_SHA'
-    id: 'Push Image to Artifact Registry (commit sha)'
-
-  - name: 'gcr.io/cloud-builders/docker'
-    args:
-      - 'push'
-      - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPOSITORY_NAME}/${_IMAGE_NAME}:latest' # Optional: push latest tag
-    id: 'Push Image to Artifact Registry (latest)'
-
-# Specify the images to be built and pushed.
-# This is important for Cloud Build to know what artifacts were produced.
-images:
-  - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPOSITORY_NAME}/${_IMAGE_NAME}:$COMMIT_SHA'
-  - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPOSITORY_NAME}/${_IMAGE_NAME}:latest' # Optional: if you pushed latest
-
-# Substitutions: These are variables you can override at build time or set as defaults.
-substitutions:
-  _REGION: 'us-central1'                 # Replace with your Artifact Registry region
-  _AR_REPOSITORY_NAME: 'my-nextjs-apps'  # Replace with your Artifact Registry repository name
-  _IMAGE_NAME: 'bh-admin-panel'          # Replace with your desired image name
-
-# Options for the build
-options:
-  logging: CLOUD_LOGGING_ONLY # Store logs in Cloud Logging
-  # machineType: 'E2_HIGHCPU_8' # Optional: Specify a more powerful machine type if needed
-</file>
-
 <file path="bh-app/app/(home)/device/[id].tsx">
 // app/(home)/device/[id].tsx
 import React, { useEffect, useState, useCallback, useRef } from 'react';
@@ -18130,6 +18066,98 @@ app.Run();
     ENV PORT 3000
     
     CMD ["node", "server.js"]
+</file>
+
+<file path="bh-admin-panel/cloudbuild.yaml">
+# bh-admin-panel/cloudbuild.yaml
+steps:
+  # Step 1: Build the Docker image
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '--tag'
+      - '${_AR_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO_NAME}/${_IMAGE_NAME}:$COMMIT_SHA'
+      - '--tag'
+      - '${_AR_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO_NAME}/${_IMAGE_NAME}:latest'
+      - '--build-arg'
+      - 'NEXT_PUBLIC_API_URL=${_NEXT_PUBLIC_API_URL}'
+      - '--build-arg'
+      - 'NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${_NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}'
+      - '--build-arg'
+      - 'NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in'
+      - '--build-arg'
+      - 'NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up'
+      - '--build-arg'
+      - 'NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=/'
+      - '--build-arg'
+      - 'NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=/'
+      - 'bh-admin-panel' # Correct Docker build context for this sub-project
+    id: 'Build Admin Panel Image'
+    timeout: '1200s'
+
+  # Step 2: Push the Docker image to Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - '${_AR_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO_NAME}/${_IMAGE_NAME}:$COMMIT_SHA'
+    id: 'Push Admin Panel Image (commit sha)'
+    waitFor: ['Build Admin Panel Image']
+
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - '${_AR_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO_NAME}/${_IMAGE_NAME}:latest'
+    id: 'Push Admin Panel Image (latest)'
+    waitFor: ['Build Admin Panel Image']
+
+  # Step 3: Deploy Admin Panel to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      - 'run'
+      - 'deploy'
+      - '${_SERVICE_NAME_ADMIN_PANEL}' # Name for your new Cloud Run service
+      - '--image'
+      - '${_AR_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO_NAME}/${_IMAGE_NAME}:$COMMIT_SHA'
+      - '--region'
+      - '${_CLOUD_RUN_REGION}'
+      - '--platform'
+      - 'managed'
+      - '--allow-unauthenticated' # Adjust as needed (e.g., --no-allow-unauthenticated)
+      - '--port'
+      - '3000' # Port your Next.js app listens on (from bh-admin-panel/Dockerfile)
+      - '--set-env-vars'
+      # Runtime Environment Variables:
+      - 'CLERK_SECRET_KEY=${_CLERK_SECRET_KEY}' # CRITICAL: Provide this securely
+      - 'NEXT_PUBLIC_API_URL=${_NEXT_PUBLIC_API_URL}'
+      - 'NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${_NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}'
+      - 'NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in'
+      - 'NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up'
+      - 'NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=/'
+      - 'NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=/'
+      # Add any other runtime ENV VARS your server.js might need
+    id: 'Deploy Admin Panel to Cloud Run'
+    waitFor: ['Push Admin Panel Image (commit sha)', 'Push Admin Panel Image (latest)']
+
+images:
+  - '${_AR_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO_NAME}/${_IMAGE_NAME}:$COMMIT_SHA'
+  - '${_AR_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO_NAME}/${_IMAGE_NAME}:latest'
+
+substitutions:
+  _AR_REGION: 'us' # e.g., 'us-central1' for single region, or 'us' for multi-region Artifact Registry
+  _AR_REPO_NAME: 'gcr.io' # *** REPLACE THIS with your actual Artifact Registry repository name ***
+  _IMAGE_NAME: 'bh-admin-panel'
+  _CLOUD_RUN_REGION: 'us-central1' # Specific region for Cloud Run service
+  _SERVICE_NAME_ADMIN_PANEL: 'bh-admin-panel-frontend' # Choose a unique name for this Cloud Run service
+
+  # Build-time and Runtime values (can be overridden by trigger settings)
+  _NEXT_PUBLIC_API_URL: 'https://user-server-bh-168223699989.us-central1.run.app'
+  _NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: 'pk_test_Y2xlYXItZm93bC0wLmNsZXJrLmFjY291bnRzLmRldiQ'
+  _CLERK_SECRET_KEY: 'sk_test_3GBoIIcXWpJfdW6VEPx68vv3mNS9T0Jlhp1H2fcCB5' # *** IMPORTANT: REPLACE or set via trigger/Secret Manager ***
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+  # machineType: 'E2_HIGHCPU_8' # Optional
 </file>
 
 <file path="User_Server_BH_basic/app/auth/device_auth.py">
