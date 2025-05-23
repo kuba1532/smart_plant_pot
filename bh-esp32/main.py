@@ -601,7 +601,7 @@ def main():
                     # Sprawdzenie nowych wiadomości
                     mqtt_client.check_msg()
                     
-                    # Sprawdź timery
+                    
                     check_timers()
                     
                     # Sprawdź czy minęło wystarczająco czasu od ostatniej komendy
