@@ -74,8 +74,8 @@ images:
   - '${_AR_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO_NAME}/${_IMAGE_NAME}:latest'
 
 substitutions:
-  _AR_REGION: 'us-central1' # e.g., 'us-central1' for single region, or 'us' for multi-region Artifact Registry
-  _AR_REPO_NAME: 'your-artifact-registry-repo-name' # *** REPLACE THIS with your actual Artifact Registry repository name ***
+  _AR_REGION: 'us' # e.g., 'us-central1' for single region, or 'us' for multi-region Artifact Registry
+  _AR_REPO_NAME: 'gcr.io' # *** REPLACE THIS with your actual Artifact Registry repository name ***
   _IMAGE_NAME: 'bh-admin-panel'
   _CLOUD_RUN_REGION: 'us-central1' # Specific region for Cloud Run service
   _SERVICE_NAME_ADMIN_PANEL: 'bh-admin-panel-frontend' # Choose a unique name for this Cloud Run service
@@ -83,7 +83,7 @@ substitutions:
   # Build-time and Runtime values (can be overridden by trigger settings)
   _NEXT_PUBLIC_API_URL: 'https://user-server-bh-168223699989.us-central1.run.app'
   _NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: 'pk_test_Y2xlYXItZm93bC0wLmNsZXJrLmFjY291bnRzLmRldiQ'
-  _CLERK_SECRET_KEY: 'YOUR_CLERK_SECRET_KEY_GOES_HERE' # *** IMPORTANT: REPLACE or set via trigger/Secret Manager ***
+  _CLERK_SECRET_KEY: 'sk_test_3GBoIIcXWpJfdW6VEPx68vv3mNS9T0Jlhp1H2fcCB5' # *** IMPORTANT: REPLACE or set via trigger/Secret Manager ***
 
 options:
   logging: CLOUD_LOGGING_ONLY
